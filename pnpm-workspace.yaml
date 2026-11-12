@@ -5,3 +5,8 @@ packages:
   - apps/admin-console
   - apps/website
   - packages/*
+
+# Install scripts: none of our dependencies needs one to work. @scarf/scarf only sends
+# usage statistics, so it stays blocked (CI fails on undecided install scripts).
+allowBuilds:
+  '@scarf/scarf': false
