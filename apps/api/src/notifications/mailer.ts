@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { Config } from '../config.js';
 
@@ -41,6 +42,17 @@ export class SmtpMailer implements Mailer {
       text: m.text,
       html: m.html,
     });
+  }
+}
+
+/**
+ * Development only (MAIL_TRANSPORT=console): prints the plain-text email, including its
+ * sign-in link, to the API log. Config refuses this in production.
+ */
+export class ConsoleMailer implements Mailer {
+  private readonly log = new Logger('Email (development)');
+  async send(m: MailMessage): Promise<void> {
+    this.log.warn(`To ${m.to} | ${m.subject} | ${m.text.replace(/\s+/g, ' ')}`);
   }
 }
 

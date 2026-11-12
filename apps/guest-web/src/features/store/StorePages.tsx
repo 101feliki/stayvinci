@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   ArrowRight,
+  Check,
   ChevronRight,
   Clock,
   Radio,
@@ -22,7 +23,8 @@ import { date, durationLabel, money } from '@stayvinci/demo-data/format';
 import { Stars } from '../../app/shared';
 import { StoreSocials, useStore } from './StoreLayout';
 import { LiveSessions } from './LiveSessions';
-import type { StoreView } from '../../mock/api';
+import type { StoreView } from '../../lib/api';
+import type { SectionKind } from '@stayvinci/demo-data/types';
 
 type Service = StoreView['services'][number];
 
@@ -101,6 +103,84 @@ export function StoreHome() {
   const th = s.palette;
   const featured = [...s.services].filter((x) => x.visibility !== 'hidden').slice(0, 4);
   const blocks: Record<string, React.ReactNode> = {
+    highlights: s.highlights.length ? (
+      <section key="highlights">
+        <SectionHead eyebrow="Why guests choose us" title={`At ${s.tenant.name}`} />
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {s.highlights.map((h) => (
+            <li
+              key={h}
+              className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-sm shadow-card"
+            >
+              <Check className="mt-0.5 size-4 shrink-0 text-azure-500" />
+              {h}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null,
+    rooms: s.rooms.length ? (
+      <section key="rooms">
+        <SectionHead
+          eyebrow={s.tenant.vertical === 'short_stay' ? 'Stay with us' : 'Facilities'}
+          title={s.tenant.vertical === 'short_stay' ? 'The rooms' : 'Rooms & facilities'}
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {s.rooms.map((r) => (
+            <article
+              key={r.id}
+              className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card"
+            >
+              {r.gallery[0] ? (
+                <img
+                  src={r.gallery[0]}
+                  alt=""
+                  loading="lazy"
+                  className="h-40 w-full object-cover"
+                />
+              ) : null}
+              <div className="p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-semibold">{r.name}</h3>
+                  <span className="shrink-0 text-xs text-ink-subtle">
+                    {r.capacity > 1 ? `Up to ${r.capacity} guests` : '1 guest'}
+                  </span>
+                </div>
+                {r.description ? (
+                  <p className="mt-1 text-[13px] text-ink-muted">{r.description}</p>
+                ) : null}
+                {r.amenities.length ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {r.amenities.slice(0, 6).map((a) => (
+                      <Badge key={a}>{a}</Badge>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ) : null,
+    gallery: s.gallery.length ? (
+      <section key="gallery">
+        <SectionHead title="Inside" />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+          {s.gallery.slice(0, 6).map((g, i) => (
+            <img
+              key={g}
+              src={g}
+              alt=""
+              loading="lazy"
+              className={cn(
+                'aspect-square w-full rounded-2xl object-cover',
+                i === 0 && 'sm:col-span-2 sm:row-span-2 sm:aspect-auto sm:h-full',
+              )}
+            />
+          ))}
+        </div>
+      </section>
+    ) : null,
     featured: (
       <section key="featured">
         <SectionHead eyebrow="Our favourites" title="Featured" to={`/s/${handle}/menu`} />
@@ -198,7 +278,7 @@ export function StoreHome() {
           <span className="flex-1 text-sm">
             <span className="block font-medium">{s.tenant.area}</span>
             <span className="text-[13px] text-ink-muted">
-              {s.address ? s.address : 'Exact address is shared once your booking is paid.'}
+              {s.address ? s.address : 'The exact address comes with your booking confirmation.'}
             </span>
           </span>
         </div>
@@ -267,7 +347,7 @@ export function StoreHome() {
       {s.sections
         .filter((k) => k in blocks && blocks[k])
         .map((k) => {
-          const paint = paintSection(s.sectionStyles[k], th, k);
+          const paint = paintSection(s.sectionStyles[k as SectionKind], th, k as SectionKind);
           if (!paint.filled) return blocks[k];
           return (
             <div
@@ -514,7 +594,14 @@ export function StoreAbout() {
       <div className="space-y-6">
         <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
           <h2 className="text-[15px] font-semibold">About</h2>
-          <p className="mt-2 text-sm text-ink-muted">{s.tenant.description}</p>
+          <p className="mt-2 text-sm whitespace-pre-line text-ink-muted">{s.tenant.description}</p>
+          {s.amenities.length ? (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {s.amenities.map((a) => (
+                <Badge key={a}>{a}</Badge>
+              ))}
+            </div>
+          ) : null}
         </section>
         <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
           <h2 className="text-[15px] font-semibold">Booking policies</h2>
@@ -523,15 +610,32 @@ export function StoreAbout() {
               <li>A {p.depositValue}% deposit secures your booking.</li>
             ) : null}
             {p.paymentAtBooking === 'full' ? <li>Full payment when you book.</li> : null}
-            <li>Free cancellation up to {p.freeCancelHours} hours before.</li>
+            {p.text.cancellation ? null : (
+              <li>Free cancellation up to {p.freeCancelHours} hours before.</li>
+            )}
+            {p.text.cancellation ? (
+              <li>{p.text.cancellation}</li>
+            ) : (
+              <li>
+                {p.lateCancel === 'deposit_kept'
+                  ? 'Later than that, the deposit is kept.'
+                  : p.lateCancel === 'percent_fee'
+                    ? `Later than that, a ${p.lateCancelPct}% fee applies.`
+                    : 'Later than that, the full amount is charged.'}
+              </li>
+            )}
             <li>
-              {p.lateCancel === 'deposit_kept'
-                ? 'Later than that, the deposit is kept.'
-                : p.lateCancel === 'percent_fee'
-                  ? `Later than that, a ${p.lateCancelPct}% fee applies.`
-                  : 'Later than that, the full amount is charged.'}
+              Book at least{' '}
+              {p.leadTimeHours < 1
+                ? `${Math.round(p.leadTimeHours * 60)} minutes`
+                : `${p.leadTimeHours} hours`}{' '}
+              ahead.
             </li>
-            <li>Book at least {p.leadTimeHours} hours ahead.</li>
+            {Object.entries(p.text)
+              .filter(([k]) => k !== 'cancellation')
+              .map(([k, v]) => (
+                <li key={k}>{v}</li>
+              ))}
           </ul>
         </section>
         {s.reviews.length ? (
@@ -566,7 +670,7 @@ export function StoreAbout() {
             <p className="mt-2 rounded-lg bg-gold-50 p-3 text-[13px] text-gold-800">{s.arrival}</p>
           ) : (
             <p className="mt-1 text-xs text-ink-subtle">
-              Exact address and arrival details are shared after payment.
+              The exact address and arrival details come with your booking.
             </p>
           )}
         </section>

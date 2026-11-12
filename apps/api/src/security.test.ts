@@ -39,7 +39,8 @@ describe('every route is protected', () => {
   });
 
   it('refuses every non-public route without a token', async () => {
-    const PUBLIC = /^\/health|^\/v1\/auth\/(otp|magic-link|password|refresh|email\/verify$)/;
+    const PUBLIC =
+      /^\/health|^\/v1\/auth\/(otp|magic-link|password|refresh|email\/verify$)|^\/v1\/stores(\/enter|\/\{handle\}(\/availability)?)?$/;
     for (const [method, path] of paths) {
       if (PUBLIC.test(path)) continue;
       const res = await call(method, fill(path, h.ids.tenantA)).send({});

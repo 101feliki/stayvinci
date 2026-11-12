@@ -1,73 +1,32 @@
 import { eq } from 'drizzle-orm';
 import { withContext, type Db } from './connect.js';
-import { membership, tenant, user } from './schema.js';
+import { importStore, type ImportResult } from './import.js';
+import { user } from './schema.js';
+import { showcaseStores } from './showcase.js';
 
 export interface SeedResult {
-  tenantId: string;
-  ownerId: string;
   staffId: string;
+  stores: ImportResult[];
 }
 
+/** The Stayvinci super admin used to sign in to the console in development. */
+export const DEV_STAFF_EMAIL = 'felix@stayvinci.com';
+
 /**
- * Development seed: one House (Serenity), its owner, and a Stayvinci super admin.
- * Runs as the platform role, so it goes through the same row-level security as the app.
- * Contains no secrets: people sign in with an SMS code or email link in development.
+ * Development and demo seed: the showcase stores (10 client spas, 20 Ateliers) and one
+ * Stayvinci super admin. Runs through the platform role, so row-level security applies.
+ * Contains no secrets: everyone signs in with an email link.
  */
 export async function seedDev(db: Db): Promise<SeedResult> {
-  return withContext(db, { role: 'sv_platform' }, async (tx) => {
-    const existing = await tx
-      .select({ id: tenant.id })
-      .from(tenant)
-      .where(eq(tenant.handle, 'serenity'));
-    const [owner] = await tx
-      .insert(user)
-      .values({
-        phoneE164: '+254712345678',
-        email: 'amani@serenity.example',
-        fullName: 'Amani Mwangi',
-      })
-      .onConflictDoNothing()
-      .returning({ id: user.id });
-    const [staff] = await tx
-      .insert(user)
-      .values({
-        phoneE164: '+254700000001',
-        email: 'felix@stayvinci.com',
-        fullName: 'Felix Kariuki',
-        platformRole: 'super_admin',
-      })
-      .onConflictDoNothing()
-      .returning({ id: user.id });
-    if (existing[0] || !owner || !staff) {
-      const [o] = await tx
-        .select({ id: user.id })
-        .from(user)
-        .where(eq(user.phoneE164, '+254712345678'));
-      const [s] = await tx
-        .select({ id: user.id })
-        .from(user)
-        .where(eq(user.email, 'felix@stayvinci.com'));
-      return { tenantId: existing[0]?.id ?? '', ownerId: o?.id ?? '', staffId: s?.id ?? '' };
-    }
-    const [t] = await tx
-      .insert(tenant)
-      .values({
-        handle: 'serenity',
-        name: 'Serenity Spa & Wellness',
-        kind: 'house',
-        vertical: 'spa',
-        marketCode: 'KE',
-        timezone: 'Africa/Nairobi',
-        currency: 'KES',
-        status: 'live',
-        planCode: 'signature',
-        source: 'invited',
-      })
-      .returning({ id: tenant.id });
-    if (!t) throw new Error('Seeding the tenant failed');
+  const staffId = await withContext(db, { role: 'sv_platform' }, async (tx) => {
     await tx
-      .insert(membership)
-      .values({ tenantId: t.id, userId: owner.id, role: 'owner', status: 'active' });
-    return { tenantId: t.id, ownerId: owner.id, staffId: staff.id };
+      .insert(user)
+      .values({ email: DEV_STAFF_EMAIL, fullName: 'Felix Kariuki', platformRole: 'super_admin' })
+      .onConflictDoNothing();
+    const [s] = await tx.select({ id: user.id }).from(user).where(eq(user.email, DEV_STAFF_EMAIL));
+    return s?.id ?? '';
   });
+  const stores: ImportResult[] = [];
+  for (const s of showcaseStores()) stores.push(await importStore(db, s));
+  return { staffId, stores };
 }

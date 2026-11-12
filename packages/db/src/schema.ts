@@ -130,6 +130,7 @@ export const tenant = pgTable('tenant', {
     .default('private'),
   planCode: text('plan_code').notNull(),
   source: text('source').$type<'self_signup' | 'invited'>().notNull().default('self_signup'),
+  accessCode: citext('access_code'),
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 });
@@ -206,6 +207,9 @@ export const location = pgTable('location', {
   name: text('name').notNull(),
   address: jsonb('address').notNull(),
   timezone: text('timezone').notNull(),
+  hours: jsonb('hours').$type<OpeningHours>().notNull(),
+  area: text('area'),
+  city: text('city'),
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 });
@@ -219,6 +223,15 @@ export const resource = pgTable('resource', {
   capacity: smallint('capacity').notNull().default(1),
   membershipId: uuid('membership_id'),
   active: boolean('active').notNull().default(true),
+  title: text('title'),
+  bio: text('bio').notNull().default(''),
+  specialties: text('specialties').array().notNull().default([]),
+  photoUrl: text('photo_url'),
+  description: text('description').notNull().default(''),
+  amenities: text('amenities').array().notNull().default([]),
+  gallery: text('gallery').array().notNull().default([]),
+  showOnStore: boolean('show_on_store').notNull().default(true),
+  position: smallint('position').notNull().default(0),
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 });
@@ -327,6 +340,51 @@ export const resourceAllocation = pgTable('resource_allocation', {
   during: tstzrange('during').notNull(),
   active: boolean('active').notNull().default(true),
   createdAt: ts('created_at').notNull().defaultNow(),
+});
+
+/** Weekly opening hours: day key to a list of [open, close] local times ("09:00"). */
+export type OpeningHours = Partial<
+  Record<'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun', [string, string][]>
+>;
+
+/* ---------- Storefront, team, reviews (0007) ---------- */
+
+export const storefront = pgTable('storefront', {
+  tenantId: uuid('tenant_id').primaryKey(),
+  tagline: text('tagline').notNull().default(''),
+  about: text('about').notNull().default(''),
+  highlights: text('highlights').array().notNull().default([]),
+  amenities: text('amenities').array().notNull().default([]),
+  area: text('area'),
+  city: text('city'),
+  logoUrl: text('logo_url'),
+  coverUrl: text('cover_url'),
+  gallery: text('gallery').array().notNull().default([]),
+  design: jsonb('design').$type<Record<string, unknown>>().notNull().default({}),
+  socials: jsonb('socials').$type<Record<string, string>>().notNull().default({}),
+  policies: jsonb('policies').$type<Record<string, string>>().notNull().default({}),
+  published: boolean('published').notNull().default(false),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const serviceResource = pgTable('service_resource', {
+  tenantId: uuid('tenant_id').notNull(),
+  serviceId: uuid('service_id').notNull(),
+  resourceId: uuid('resource_id').notNull(),
+});
+
+export const review = pgTable('review', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull(),
+  bookingId: uuid('booking_id').notNull(),
+  guestProfileId: uuid('guest_profile_id').notNull(),
+  rating: smallint('rating').notNull(),
+  comment: text('comment').notNull().default(''),
+  reply: text('reply'),
+  published: boolean('published').notNull().default(true),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
 });
 
 /* ---------- Payments ---------- */

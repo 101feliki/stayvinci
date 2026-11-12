@@ -109,6 +109,7 @@ const ERROR_TEXT: Record<number, string> = {
   409: 'Conflict (duplicate, or a request with this Idempotency-Key is still running)',
   422: 'Validation failed',
   429: 'Too many requests',
+  503: 'Not available right now (e.g. a sign-in method that is switched off)',
 };
 
 export const DocQuery = (schema: z.ZodObject) =>

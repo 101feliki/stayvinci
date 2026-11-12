@@ -2,8 +2,8 @@ import { Logger } from '@nestjs/common';
 import { connect, migrate } from '@stayvinci/db';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
-import { SmtpMailer } from './notifications/mailer.js';
-import { AfricasTalkingSms, ConsoleSms, MemorySms } from './notifications/sms.js';
+import { ConsoleMailer, SmtpMailer } from './notifications/mailer.js';
+import { AfricasTalkingSms, ConsoleSms, DisabledSms, MemorySms } from './notifications/sms.js';
 
 const log = new Logger('Startup');
 const config = loadConfig();
@@ -19,9 +19,16 @@ const sms =
     ? new AfricasTalkingSms()
     : config.smsProvider === 'memory'
       ? new MemorySms()
-      : new ConsoleSms();
+      : config.smsProvider === 'console'
+        ? new ConsoleSms()
+        : new DisabledSms();
 
-const app = await createApp({ config, database, mailer: new SmtpMailer(config), sms });
+const app = await createApp({
+  config,
+  database,
+  mailer: config.mailTransport === 'console' ? new ConsoleMailer() : new SmtpMailer(config),
+  sms,
+});
 await app.listen(config.port);
 log.log(
   `Listening on http://localhost:${config.port}${config.docs.enabled ? ' · docs at /docs' : ''}`,

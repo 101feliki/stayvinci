@@ -20,7 +20,7 @@ import {
   Switch,
   ThemeSwitcher,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useAction, useMe, useSignIn } from '../../app/shared';
 
 /** Profile and privacy controls (spec §7 discretion features). */
@@ -41,7 +41,7 @@ export function ProfilePage() {
         <UserRound className="mx-auto size-8 text-ink-subtle" />
         <h1 className="mt-3 text-lg font-semibold">You’re browsing as a visitor</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Sign in with your phone number to book and keep your places.
+          Sign in with your email to book and keep your places.
         </p>
         <Button className="mt-5" onClick={() => requireSignIn(m, () => undefined)}>
           Sign in
@@ -62,7 +62,7 @@ export function ProfilePage() {
           <h1 className="text-xl font-semibold tracking-tight">
             {m.firstName} {m.lastName}
           </h1>
-          <div className="text-sm text-ink-muted">{m.phone}</div>
+          <div className="text-sm text-ink-muted">{m.email ?? m.phone}</div>
         </div>
       </div>
 
@@ -155,12 +155,9 @@ export function ProfilePage() {
           <div className="flex-1">
             <div className="text-sm font-medium">Signed-in devices</div>
             <div className="text-[13px] text-ink-muted">
-              This browser · Android phone (last week)
+              This browser. Signing out here ends this session only.
             </div>
           </div>
-          <Button size="sm" variant="secondary">
-            Sign out others
-          </Button>
         </div>
       </section>
 

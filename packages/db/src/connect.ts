@@ -74,13 +74,21 @@ export async function connect(url: string): Promise<Database> {
   };
 }
 
-export type DbRole = 'sv_app' | 'sv_identity' | 'sv_payments' | 'sv_platform';
-const ROLES: readonly DbRole[] = ['sv_app', 'sv_identity', 'sv_payments', 'sv_platform'];
+export type DbRole = 'sv_app' | 'sv_identity' | 'sv_payments' | 'sv_platform' | 'sv_public';
+const ROLES: readonly DbRole[] = [
+  'sv_app',
+  'sv_identity',
+  'sv_payments',
+  'sv_platform',
+  'sv_public',
+];
 
 export interface RequestContext {
   role: DbRole;
   userId?: string | null;
   tenantId?: string | null;
+  /** Private store code typed by a guest (sv_public can then see that store). */
+  accessCode?: string | null;
 }
 
 export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -100,7 +108,8 @@ export async function withContext<T>(
   return db.transaction(async (tx) => {
     await tx.execute(sql.raw(`set local role ${ctx.role}`));
     await tx.execute(sql`select set_config('app.tenant_id', ${ctx.tenantId ?? ''}, true),
-                               set_config('app.user_id', ${ctx.userId ?? ''}, true)`);
+                               set_config('app.user_id', ${ctx.userId ?? ''}, true),
+                               set_config('app.access_code', ${ctx.accessCode ?? ''}, true)`);
     return fn(tx);
   });
 }

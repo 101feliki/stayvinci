@@ -4,7 +4,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { toast } from 'sonner';
 import { Avatar, Badge, Button } from '@stayvinci/ui';
 import { dateTime, money } from '@stayvinci/demo-data/format';
-import type { StoreView } from '../../mock/api';
+import type { StoreView } from '../../lib/api';
 import { useMe, useSignIn } from '../../app/shared';
 
 type Item = StoreView['content'][number];

@@ -22,13 +22,16 @@ const Env = z.object({
   DOCS_ENABLED: bool.optional(),
   DOCS_USER: z.string().optional(),
   DOCS_PASSWORD: z.string().optional(),
+  // "smtp" sends through SMTP_*; "console" prints emails (with their links) to the API log, development only.
+  MAIL_TRANSPORT: z.enum(['smtp', 'console']).default('smtp'),
   SMTP_HOST: z.string().default('127.0.0.1'),
   SMTP_PORT: z.coerce.number().int().default(1025),
   SMTP_SECURE: bool.default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().default('Stayvinci <no-reply@stayvinci.com>'),
-  SMS_PROVIDER: z.enum(['console', 'memory', 'africastalking']).default('console'),
+  // SMS sign-in is on hold: email (magic link, password) is the sign-in method for now.
+  SMS_PROVIDER: z.enum(['off', 'console', 'memory', 'africastalking']).default('off'),
   RATE_LIMIT: bool.default(true),
 });
 
@@ -47,6 +50,7 @@ export interface Config {
   accessTtl: number;
   refreshTtlDays: number;
   docs: { enabled: boolean; user: string | null; password: string | null };
+  mailTransport: 'smtp' | 'console';
   smtp: {
     host: string;
     port: number;
@@ -55,7 +59,7 @@ export interface Config {
     password: string | null;
     from: string;
   };
-  smsProvider: 'console' | 'memory' | 'africastalking';
+  smsProvider: 'off' | 'console' | 'memory' | 'africastalking';
   rateLimit: boolean;
 }
 
@@ -99,8 +103,12 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
 
   if (prod && e.DATABASE_URL.startsWith('pglite://'))
     throw new Error('Use PostgreSQL in production; PGlite is for development and tests.');
-  if (prod && e.SMS_PROVIDER !== 'africastalking')
-    throw new Error('SMS_PROVIDER must be a real provider in production (console prints codes).');
+  if (prod && e.MAIL_TRANSPORT === 'console')
+    throw new Error('MAIL_TRANSPORT=console prints sign-in links; use smtp in production.');
+  if (prod && (e.SMS_PROVIDER === 'console' || e.SMS_PROVIDER === 'memory'))
+    throw new Error(
+      'SMS_PROVIDER must be "off" or a real provider in production (console prints codes).',
+    );
 
   const docsCredentials = !!(e.DOCS_USER && e.DOCS_PASSWORD);
   if (prod && e.DOCS_ENABLED && !docsCredentials)
@@ -134,6 +142,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
       user: e.DOCS_USER ?? null,
       password: e.DOCS_PASSWORD ?? null,
     },
+    mailTransport: e.MAIL_TRANSPORT,
     smtp: {
       host: e.SMTP_HOST,
       port: e.SMTP_PORT,

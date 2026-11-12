@@ -2,3 +2,4 @@
 // API validates with and documents in OpenAPI.
 export * from './capabilities.js';
 export * from './api.js';
+export * from './stores.js';

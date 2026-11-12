@@ -63,6 +63,8 @@ export const Errors = {
     new AppError(HttpStatus.UNPROCESSABLE_ENTITY, 'validation_failed', message, details),
   badRequest: (code: string, message: string) =>
     new AppError(HttpStatus.BAD_REQUEST, code, message),
+  unavailable: (code: string, message: string) =>
+    new AppError(HttpStatus.SERVICE_UNAVAILABLE, code, message),
   tooMany: () =>
     new AppError(
       HttpStatus.TOO_MANY_REQUESTS,

@@ -21,7 +21,7 @@ import {
   Skeleton,
 } from '@stayvinci/ui';
 import { dateTime } from '@stayvinci/demo-data/format';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useAction, useMe } from '../../app/shared';
 
 export function EnterCode({ large = false }: { large?: boolean }) {
@@ -119,7 +119,6 @@ export function HomePage() {
             <span className="flex items-center gap-1.5">
               <QrCode className="size-4" /> Or scan the QR at reception
             </span>
-            <span>Demo codes: SERENITY or VIP26</span>
           </div>
         </div>
         <div className="relative hidden md:block">

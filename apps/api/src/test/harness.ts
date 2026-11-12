@@ -15,7 +15,7 @@ import {
 import { createApp } from '../app.js';
 import { loadConfig, type Config } from '../config.js';
 import { MemoryMailer } from '../notifications/mailer.js';
-import { MemorySms } from '../notifications/sms.js';
+import { DisabledSms, MemorySms } from '../notifications/sms.js';
 import { base32, hashPassword, totpAt } from '../security/crypto.js';
 
 export interface Harness {
@@ -112,7 +112,7 @@ export async function createHarness(overrides: NodeJS.ProcessEnv = {}): Promise<
   const sms = new MemorySms();
   // Set TEST_LOG=1 to see server-side errors while debugging tests.
   const app = await createApp(
-    { config, database, mailer, sms },
+    { config, database, mailer, sms: config.smsProvider === 'off' ? new DisabledSms() : sms },
     process.env.TEST_LOG ? undefined : false,
   );
   await app.init();

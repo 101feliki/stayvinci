@@ -62,7 +62,16 @@ export class IdentityService {
 
   /* ---------- Phone + SMS code ---------- */
 
+  private smsOff() {
+    if ('disabled' in this.sms && this.sms.disabled)
+      throw Errors.unavailable(
+        'sms_sign_in_off',
+        'Sign-in by SMS is not available. Use email instead.',
+      );
+  }
+
   async requestOtp(phone: string): Promise<{ sent: true; expires_in_seconds: number }> {
+    this.smsOff();
     const code = sixDigits();
     await this.data.identity(async (tx) => {
       const [recent] = await tx
@@ -96,6 +105,7 @@ export class IdentityService {
     audience: Audience,
     client: ClientInfo,
   ): Promise<Tokens> {
+    this.smsOff();
     const person = await this.data.identity(async (tx) => {
       const [challenge] = await tx
         .select()
@@ -186,11 +196,11 @@ export class IdentityService {
 
   async requestMagicLink(email: string, audience: Audience): Promise<void> {
     const found = await this.data.identity(async (tx) => {
-      const [u] = await tx
-        .select()
-        .from(user)
-        .where(and(eq(user.email, email), eq(user.status, 'active')));
-      if (!u || (audience === 'console' && !u.platformRole)) return null;
+      let [u] = await tx.select().from(user).where(eq(user.email, email));
+      // Guests sign up by email (SMS sign-in is on hold): the first link creates the account,
+      // and opening it verifies the address. The response is the same either way.
+      if (!u && audience === 'guest') [u] = await tx.insert(user).values({ email }).returning();
+      if (!u || u.status !== 'active' || (audience === 'console' && !u.platformRole)) return null;
       return { token: await this.createEmailToken(tx, u.id, 'magic_link') };
     });
     if (found) {

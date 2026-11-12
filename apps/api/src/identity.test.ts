@@ -117,12 +117,28 @@ describe('email: magic links, activation, password reset (Nodemailer adapter)', 
 
   it('answers the same for unknown emails (no account enumeration)', async () => {
     const before = h.mailer.sent.length;
-    const res = await h.http
-      .post('/v1/auth/magic-link')
-      .send({ email: 'nobody@nowhere.test', audience: 'guest' })
-      .expect(202);
-    expect(res.body).toEqual({ accepted: true });
+    for (const audience of ['business', 'console']) {
+      const res = await h.http
+        .post('/v1/auth/magic-link')
+        .send({ email: 'nobody@nowhere.test', audience })
+        .expect(202);
+      expect(res.body).toEqual({ accepted: true });
+    }
     expect(h.mailer.sent.length).toBe(before);
+  });
+
+  it('lets a new guest sign up by email link', async () => {
+    await h.http
+      .post('/v1/auth/magic-link')
+      .send({ email: 'new.guest@mail.test', audience: 'guest' })
+      .expect(202);
+    const token = h.mailer.sent.at(-1)?.text.match(/token=([A-Za-z0-9_-]+)/)?.[1] ?? '';
+    const res = await h.http
+      .post('/v1/auth/magic-link/verify')
+      .send({ token, audience: 'guest' })
+      .expect(200);
+    const me = await h.http.get('/v1/me').set(bearer(res.body)).expect(200);
+    expect(me.body).toMatchObject({ email: 'new.guest@mail.test', email_verified: true });
   });
 
   it('keeps email subjects neutral', () => {
@@ -177,5 +193,26 @@ describe('two-step verification', () => {
       .expect(200);
     expect(done.body.second_factor).toBe('completed');
     await h.http.get('/v1/platform/tenants').set(bearer(done.body)).expect(200);
+  });
+});
+
+describe('SMS sign-in switched off (SMS_PROVIDER=off)', () => {
+  it('answers 503 on the SMS endpoints while email sign-in still works', async () => {
+    const off = await createHarness({ SMS_PROVIDER: 'off' });
+    try {
+      const phone = '+254722000099';
+      const req = await off.http.post('/v1/auth/otp/request').send({ phone }).expect(503);
+      expect(req.body.error.code).toBe('sms_sign_in_off');
+      await off.http
+        .post('/v1/auth/otp/verify')
+        .send({ phone, code: '123456', audience: 'guest' })
+        .expect(503);
+      await off.http
+        .post('/v1/auth/password/login')
+        .send({ email: STAFF_EMAIL, password: STAFF_PASSWORD })
+        .expect(200);
+    } finally {
+      await off.close();
+    }
   });
 });

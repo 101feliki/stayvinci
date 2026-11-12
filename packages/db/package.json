@@ -12,7 +12,8 @@
     "lint": "eslint src",
     "test": "vitest run",
     "migrate": "cd ../../apps/api && node --env-file-if-exists=.env ../../packages/db/dist/cli.js migrate",
-    "seed": "cd ../../apps/api && node --env-file-if-exists=.env ../../packages/db/dist/cli.js seed"
+    "seed": "cd ../../apps/api && node --env-file-if-exists=.env ../../packages/db/dist/cli.js seed",
+    "import": "cd ../../apps/api && node --env-file-if-exists=.env ../../packages/db/dist/cli.js import"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",

@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+@import '@stayvinci/ui/theme.css';
+
+@source '../../../packages/ui/src';
+
+/* Same chrome as the guest app: obsidian black and white, with the gold logo as the standout. */
+@theme {
+  --color-emerald-600: #2a2a2e;
+  --color-emerald-700: #1f1f22;
+  --color-emerald-800: #17171a;
+  --color-emerald-900: #0b0b0c;
+  --color-emerald-950: #050506;
+}
+
+@theme {
+  --animate-rise: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @keyframes rise {
+    from {
+      transform: translateY(14px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation: none !important;
+  }
+}

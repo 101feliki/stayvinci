@@ -9,6 +9,14 @@ export interface Sms {
  * Development only: prints the code to the API log so you can sign in locally.
  * Config refuses this provider in production.
  */
+/** SMS switched off (SMS_PROVIDER=off): sign-in by SMS answers "not available". */
+export class DisabledSms implements Sms {
+  readonly disabled = true;
+  async send(): Promise<void> {
+    throw new Error('SMS is switched off.');
+  }
+}
+
 export class ConsoleSms implements Sms {
   private readonly log = new Logger('SMS (development)');
   async send(phoneE164: string, text: string): Promise<void> {

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Send, ShieldCheck } from 'lucide-react';
 import { Button, Textarea, cn } from '@stayvinci/ui';
 import { time } from '@stayvinci/demo-data/format';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useAction } from '../../app/shared';
 
 /** In-app chat with the House; no phone numbers exchanged (spec §9). */

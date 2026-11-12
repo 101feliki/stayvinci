@@ -5,7 +5,7 @@ import { CalendarDays, ChevronRight, MapPin } from 'lucide-react';
 import { Badge, Button, Dialog, Segmented, Skeleton, type BadgeTone } from '@stayvinci/ui';
 import { dateTime, money } from '@stayvinci/demo-data/format';
 import type { BookingState } from '@stayvinci/demo-data/types';
-import { api, type GuestBooking } from '../../mock/api';
+import { api, type GuestBooking } from '../../lib/api';
 import { useAction, useMe, useSignIn } from '../../app/shared';
 
 const STATE: Record<BookingState, { label: string; tone: BadgeTone }> = {

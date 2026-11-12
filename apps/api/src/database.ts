@@ -36,6 +36,19 @@ export class Data {
     return withContext(this.database.db, { role: 'sv_identity' }, fn);
   }
 
+  /**
+   * Guests browsing stores (signed in or not): only live, published stores, only public
+   * columns. A private store becomes visible when the guest supplies its access code.
+   */
+  publicStore<T>(accessCode: string | null, fn: (tx: Tx) => Promise<T>): Promise<T> {
+    return withContext(this.database.db, { role: 'sv_public', accessCode }, fn);
+  }
+
+  /** A guest acting inside one store they are visiting (their booking, their profile). */
+  asGuestIn<T>(userId: string, tenantId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+    return withContext(this.database.db, { role: 'sv_app', userId, tenantId }, fn);
+  }
+
   /** Stayvinci staff and system jobs. Callers must audit what they do. */
   platform<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     return withContext(this.database.db, { role: 'sv_platform' }, fn);

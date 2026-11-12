@@ -18,6 +18,10 @@ import { HealthController } from './modules/health/health.controller.js';
 import { IdentityController } from './modules/identity/identity.controller.js';
 import { IdentityService } from './modules/identity/identity.service.js';
 import { MeController } from './modules/me/me.controller.js';
+import { HouseBookingsController } from './modules/bookings/house-bookings.controller.js';
+import { CatalogueController } from './modules/catalogue/catalogue.controller.js';
+import { GuestBookingsController, StoresController } from './modules/stores/stores.controller.js';
+import { StoresService } from './modules/stores/stores.service.js';
 import { PlatformController } from './modules/platform/platform.controller.js';
 import { TenantsController } from './modules/tenants/tenants.controller.js';
 import type { Mailer } from './notifications/mailer.js';
@@ -52,6 +56,10 @@ class AppModule {
         MeController,
         TenantsController,
         PlatformController,
+        StoresController,
+        GuestBookingsController,
+        CatalogueController,
+        HouseBookingsController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -60,6 +68,7 @@ class AppModule {
         { provide: SMS, useValue: deps.sms },
         Data,
         IdentityService,
+        StoresService,
         // Order matters: rate limit, then who you are, then which House, then what you may do.
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
@@ -157,8 +166,17 @@ export function buildOpenApi(app: NestExpressApplication, config: Config): OpenA
       'access-token',
     )
     .addTag('Sign-in', 'Phone codes, email links, passwords, two-step verification and sessions')
-    .addTag('Me', 'The signed-in person')
+    .addTag(
+      'Stores (guests)',
+      'Browse stores, see free times and book (guest app). Browsing needs no sign-in',
+    )
+    .addTag('Me', 'The signed-in person and their bookings')
     .addTag('Houses', 'One House: settings, team, guests and activity (business app)')
+    .addTag(
+      'Houses: store and catalogue',
+      'Store profile, services and prices, team and rooms, opening hours',
+    )
+    .addTag('Houses: bookings and reviews', 'Calendar, check-in to completion, reviews')
     .addTag('Platform (staff)', 'Stayvinci staff console')
     .addTag('Health', 'Load-balancer checks')
     .build();
@@ -182,11 +200,9 @@ function setupDocs(app: NestExpressApplication, config: Config) {
       const given = Buffer.from(req.header('authorization') ?? '');
       if (given.length === expected.length && timingSafeEqual(given, expected)) return next();
       res.setHeader('WWW-Authenticate', 'Basic realm="Stayvinci API docs"');
-      res
-        .status(401)
-        .json({
-          error: { code: 'unauthorized', message: 'Sign in to view the API docs.', request_id: '' },
-        });
+      res.status(401).json({
+        error: { code: 'unauthorized', message: 'Sign in to view the API docs.', request_id: '' },
+      });
     });
   }
   const document = buildOpenApi(app, config);

@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Smartphone } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Button, Dialog, Field, Input } from '@stayvinci/ui';
-import { api, type Me } from '../mock/api';
+import { api, type Me } from '../lib/api';
 
 /* ---------- Store themes (curated, contrast-safe; spec §5.2) ---------- */
 
@@ -43,97 +43,99 @@ export function useAction<TArgs, TResult>(
   });
 }
 
-/* ---------- Sign-in sheet (phone + OTP; spec §7) ---------- */
+/* ---------- Sign-in sheet (email link; SMS sign-in is on hold) ---------- */
 
 interface SignInCtx {
   requireSignIn: (me: Me | undefined, then: () => void) => void;
 }
 const Ctx = createContext<SignInCtx | null>(null);
+const RETURN_KEY = 'sv.guest.return';
+
+/** Where to go back to after the emailed link signs the guest in. */
+export function takeReturnPath(): string {
+  try {
+    const v = sessionStorage.getItem(RETURN_KEY) ?? localStorage.getItem(RETURN_KEY);
+    sessionStorage.removeItem(RETURN_KEY);
+    localStorage.removeItem(RETURN_KEY);
+    return v && v.startsWith('/') ? v : '/';
+  } catch {
+    return '/';
+  }
+}
 
 export function SignInProvider({ children }: { children: ReactNode }) {
-  const [pending, setPending] = useState<null | (() => void)>(null);
-  const [phone, setPhone] = useState('+254 7');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const signIn = useAction(() => api.me.signIn(phone, otp), {
-    success: 'Signed in',
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const send = useAction(() => api.me.requestLink(email), {
     onSuccess: () => {
-      const next = pending;
-      setPending(null);
-      setStep('phone');
-      setOtp('');
-      next?.();
+      setSent(true);
+      try {
+        localStorage.setItem(RETURN_KEY, window.location.pathname + window.location.search);
+      } catch {
+        // ignore
+      }
     },
   });
   return (
     <Ctx.Provider
       value={{
-        requireSignIn: (me, then) => (me?.signedIn ? then() : setPending(() => then)),
+        requireSignIn: (me, then) => (me?.signedIn ? then() : setOpen(true)),
       }}
     >
       {children}
       <Dialog
-        open={pending !== null}
-        onOpenChange={(o) => (!o ? setPending(null) : undefined)}
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setSent(false);
+        }}
         size="sm"
-        title={step === 'phone' ? 'Sign in to book' : 'Enter your code'}
+        title={sent ? 'Check your email' : 'Sign in to book'}
         description={
-          step === 'phone'
-            ? 'We’ll text you a code. No password needed.'
-            : `Sent to ${phone}. Demo: any 6 digits.`
+          sent
+            ? `We sent a sign-in link to ${email}. Open it on this device to continue. It works once and expires in 15 minutes.`
+            : 'We’ll email you a sign-in link. No password needed.'
         }
         footer={
-          step === 'phone' ? (
-            <Button
-              className="w-full"
-              onClick={() => setStep('otp')}
-              disabled={phone.replace(/\D/g, '').length < 9}
-            >
-              <Smartphone className="size-4" /> Send code
+          sent ? (
+            <Button className="w-full" variant="ghost" onClick={() => setSent(false)}>
+              Use another email
             </Button>
           ) : (
             <Button
               className="w-full"
-              onClick={() => signIn.mutate(undefined)}
-              loading={signIn.isPending}
+              onClick={() => send.mutate(undefined)}
+              loading={send.isPending}
+              disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
             >
-              Continue
+              <Mail className="size-4" /> Email me a link
             </Button>
           )
         }
       >
-        {step === 'phone' ? (
-          <Field label="Mobile number">
+        {sent ? null : (
+          <Field label="Email">
             {(id) => (
               <Input
                 id={id}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="h-12 text-base"
-              />
-            )}
-          </Field>
-        ) : (
-          <Field label="6-digit code">
-            {(id) => (
-              <Input
-                id={id}
-                inputMode="numeric"
-                autoComplete="one-time-code"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
                 autoFocus
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                className="h-12 text-center text-xl tracking-[0.5em]"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') send.mutate(undefined);
+                }}
+                className="h-12 text-base"
               />
             )}
           </Field>
         )}
         <p className="mt-4 text-xs text-ink-subtle">
-          You can browse without an account. You only need one to book.
+          You can browse without an account. You only need one to book. New here? The link creates
+          your account.
         </p>
       </Dialog>
     </Ctx.Provider>

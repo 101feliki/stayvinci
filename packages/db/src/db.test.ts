@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { connect, withContext, type Database, type Tx } from './connect.js';
 import { migrate } from './migrate.js';
+import { seedDev } from './seed.js';
 import {
   auditLog,
   booking,
@@ -9,6 +10,8 @@ import {
   membership,
   resource,
   resourceAllocation,
+  review,
+  storefront,
   tenant,
   user,
 } from './schema.js';
@@ -252,5 +255,150 @@ describe('audit log', () => {
     // ...and the trigger stops the owner login too.
     await failsWith(database.runner.query('delete from audit_log'), /append-only/);
     await failsWith(database.runner.query(`update audit_log set actor_label = 'x'`), /append-only/);
+  });
+});
+
+describe('public store browsing (sv_public)', () => {
+  const asPublic = <T>(fn: (tx: Tx) => Promise<T>, accessCode?: string) =>
+    withContext(database.db, { role: 'sv_public', accessCode: accessCode ?? null }, fn);
+  const visibleHandles = (accessCode?: string) =>
+    asPublic(
+      (tx) => tx.select({ handle: tenant.handle }).from(tenant).orderBy(tenant.handle),
+      accessCode,
+    ).then((rows) => rows.map((r) => r.handle));
+
+  beforeAll(async () => {
+    await asPlatform(async (tx) => {
+      await tx
+        .update(tenant)
+        .set({ status: 'live', visibility: 'listed' })
+        .where(eq(tenant.id, ids.tenantA));
+      await tx
+        .update(tenant)
+        .set({ status: 'live', visibility: 'private', accessCode: 'SECRET-B' })
+        .where(eq(tenant.id, ids.tenantB));
+      await tx.insert(storefront).values([
+        { tenantId: ids.tenantA, tagline: 'A', published: true },
+        { tenantId: ids.tenantB, tagline: 'B', published: true },
+      ]);
+    });
+  });
+
+  it('sees listed live stores, and a private one only with its code', async () => {
+    expect(await visibleHandles()).toEqual(['house-a']);
+    expect(await visibleHandles('SECRET-B')).toEqual(['house-a', 'house-b']);
+    expect(await visibleHandles('wrong-code')).toEqual(['house-a']);
+  });
+
+  it('only sees storefronts of visible stores', async () => {
+    const rows = await asPublic((tx) => tx.select({ t: storefront.tagline }).from(storefront));
+    expect(rows.map((r) => r.t)).toEqual(['A']);
+  });
+
+  it('cannot read access codes, addresses, guests or bookings', async () => {
+    await failsWith(
+      asPublic((tx) => tx.execute(sql`select access_code from tenant`)),
+      /permission denied/,
+    );
+    await failsWith(
+      asPublic((tx) => tx.execute(sql`select address from location`)),
+      /permission denied/,
+    );
+    await failsWith(
+      asPublic((tx) => tx.execute(sql`select * from guest_profile`)),
+      /permission denied/,
+    );
+    await failsWith(
+      asPublic((tx) => tx.execute(sql`select * from booking`)),
+      /permission denied/,
+    );
+    await failsWith(
+      asPublic((tx) => tx.execute(sql`select booking_id from resource_allocation`)),
+      /permission denied/,
+    );
+  });
+
+  it('cannot write anything', async () => {
+    await failsWith(
+      asPublic((tx) => tx.update(storefront).set({ tagline: 'x' })),
+      /permission denied/,
+    );
+  });
+});
+
+describe('reviews', () => {
+  it('need a completed booking by the same guest', async () => {
+    const at = (d: number) => new Date(Date.UTC(2030, 1, d, 9)).toISOString();
+    const b = await asTenantA(async (tx) => {
+      const [row] = await tx
+        .insert(booking)
+        .values({
+          tenantId: ids.tenantA,
+          ref: 'SV-REV1',
+          guestProfileId: ids.profileA,
+          state: 'confirmed',
+          startsAt: at(1),
+          endsAt: at(2),
+          totalMinor: 1000,
+          currency: 'KES',
+          source: 'guest_app',
+        })
+        .returning();
+      if (!row) throw new Error('no booking');
+      return row;
+    });
+    await failsWith(
+      asTenantA((tx) =>
+        tx
+          .insert(review)
+          .values({
+            tenantId: ids.tenantA,
+            bookingId: b.id,
+            guestProfileId: ids.profileA,
+            rating: 5,
+          }),
+      ),
+      /completed booking/,
+    );
+    await asTenantA(async (tx) => {
+      const [b] = await tx
+        .select({ id: booking.id })
+        .from(booking)
+        .where(eq(booking.ref, 'SV-REV1'));
+      if (!b) throw new Error('no booking');
+      await tx.update(booking).set({ state: 'completed' }).where(eq(booking.id, b.id));
+      await tx
+        .insert(review)
+        .values({
+          tenantId: ids.tenantA,
+          bookingId: b.id,
+          guestProfileId: ids.profileA,
+          rating: 5,
+        });
+    });
+  });
+});
+
+describe('showcase seed', () => {
+  it('loads 10 spas and 20 Ateliers, and re-running updates instead of duplicating', async () => {
+    const first = await seedDev(database.db);
+    expect(first.stores).toHaveLength(30);
+    expect(first.stores.every((s) => s.created)).toBe(true);
+    const spas = first.stores.slice(0, 10);
+    expect(spas.every((s) => s.team >= 20 && s.team <= 30)).toBe(true);
+    const again = await seedDev(database.db);
+    expect(again.stores.some((s) => s.created)).toBe(false);
+    const listed = await withContext(database.db, { role: 'sv_public' }, (tx) =>
+      tx.select({ handle: tenant.handle }).from(tenant).where(eq(tenant.visibility, 'listed')),
+    );
+    // 30 showcase stores plus house-a from the public-browsing test.
+    expect(listed.length).toBe(31);
+    const team = await asPlatform((tx) =>
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(resource)
+        .where(eq(resource.type, 'staff')),
+    );
+    expect(team[0]?.n).toBeGreaterThanOrEqual(200 + 12);
   });
 });

@@ -23,14 +23,14 @@ import {
   zonedToUtc,
 } from '@stayvinci/demo-data/format';
 import type { Booking } from '@stayvinci/demo-data/types';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useAction, useMe, useSignIn } from '../../app/shared';
 
 type Step = 'time' | 'details' | 'pay';
 const STEPS: { key: Step; label: string }[] = [
   { key: 'time', label: 'Time' },
   { key: 'details', label: 'Details' },
-  { key: 'pay', label: 'Pay' },
+  { key: 'pay', label: 'Confirm' },
 ];
 
 /** Guest booking flow (spec §10.1): option → time → details → pay → confirmation. */
@@ -90,14 +90,10 @@ export function CheckoutPage() {
     () =>
       api.book({
         handle,
-        serviceId,
         variantId: variant?.id ?? '',
-        staffId: slot?.staffId ?? '',
+        staffId: slot?.staffId || staffChoice || '',
         start: slot?.start ?? '',
-        addOnIds,
-        notes,
-        alias: useAlias ? alias : null,
-        method,
+        notes: useAlias && alias.trim() ? `Please call me ${alias.trim()}. ${notes}` : notes,
         idempotencyKey: idem,
       }),
     { onSuccess: (b) => setBooking(b) },
@@ -362,7 +358,21 @@ export function CheckoutPage() {
 
         {step === 'pay' ? (
           <div className="space-y-6">
-            <section className="rounded-2xl border border-line bg-surface p-4">
+            {deposit === 0 ? (
+              <section className="rounded-2xl border border-line bg-surface p-4">
+                <h2 className="text-sm font-semibold">Pay at your visit</h2>
+                <p className="mt-1 text-[13px] text-ink-muted">
+                  Nothing to pay now. You pay {s.tenant.name} directly when you arrive, by M-Pesa or
+                  card. Free cancellation up to {pol?.freeCancelHours ?? 2} hours before.
+                </p>
+              </section>
+            ) : null}
+            <section
+              className={cn(
+                'rounded-2xl border border-line bg-surface p-4',
+                deposit === 0 && 'hidden',
+              )}
+            >
               <h2 className="mb-3 text-sm font-semibold">How would you like to pay?</h2>
               <div className="space-y-2">
                 {[
@@ -508,9 +518,9 @@ function AfterBooking({
 }) {
   const [b, setB] = useState(booking);
   const [seconds, setSeconds] = useState(600);
-  const confirm = useAction((ok: boolean) => api.confirmPayment(b.id, ok), {
-    onSuccess: (r) => setB(r),
-  });
+  // In-app payment (M-Pesa to the House's own account) arrives in phase P2. Until then
+  // bookings confirm straight away and are paid at the visit.
+  const confirm = useAction(async (_ok: boolean) => b, { onSuccess: (r) => setB(r) });
   const waiting = b.state === 'pending_payment';
   const cancelled = waiting && b.events.some((e) => e.label === 'Payment cancelled');
   useEffect(() => {
@@ -607,7 +617,7 @@ function AfterBooking({
             <div className="mt-4 flex items-start gap-3 border-t border-line pt-4">
               <MapPin className="mt-0.5 size-5 text-emerald-700" />
               <span className="text-[13px]">
-                {address ?? 'Directions are now available in your booking.'}
+                {address ?? 'The exact address and directions come with your booking reminder.'}
               </span>
             </div>
             {b.paid > 0 ? (

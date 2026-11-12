@@ -13,6 +13,16 @@ pnpm --filter @stayvinci/api dev            # API on http://localhost:4000, Swag
 pnpm --filter @stayvinci/business-web dev   # http://localhost:5173
 pnpm --filter @stayvinci/guest-web dev      # http://localhost:5174
 pnpm --filter @stayvinci/admin-console dev  # http://localhost:5175
+pnpm --filter @stayvinci/website dev        # main website, http://localhost:5176
+pnpm --filter @stayvinci/db seed            # the 30 showcase stores (stop the API first)
+```
+
+Sign-in is by email link while SMS is on hold. In development, set `MAIL_TRANSPORT=console` in `apps/api/.env` and the link is printed in the API log.
+
+Add or update stores from a JSON file (same format as the seed, matched by store handle):
+
+```sh
+pnpm --filter @stayvinci/db run import ./stores.json
 ```
 
 Generate a secret with `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`; the encryption key needs 32 bytes in base64.
@@ -27,6 +37,7 @@ The API uses PGlite (PostgreSQL in WebAssembly) by default, so no database insta
 | `apps/business-web`  | Business app for Houses and their staff                      |
 | `apps/guest-web`     | Guest app                                                    |
 | `apps/admin-console` | Stayvinci staff console                                      |
+| `apps/website`       | Main website: what Stayvinci solves and the places on it     |
 | `apps/guest-mobile`  | Mobile guest app (Expo), later                               |
 | `packages/db`        | Database migrations, row-level security, seed                |
 | `packages/types`     | Shared request/response schemas and roles                    |

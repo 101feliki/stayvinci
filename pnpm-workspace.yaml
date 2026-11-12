@@ -3,4 +3,5 @@ packages:
   - apps/guest-web
   - apps/business-web
   - apps/admin-console
+  - apps/website
   - packages/*

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CreditCard, Crown, Gift, Package, Plus, Smartphone } from 'lucide-react';
 import { Skeleton } from '@stayvinci/ui';
 import { money } from '@stayvinci/demo-data/format';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 
 /** Packages, memberships, gift cards and saved methods, per place (spec §7, §10.7). */
 export function WalletPage() {

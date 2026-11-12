@@ -44,10 +44,10 @@ export class IdentityController {
   @ApiOperation({
     summary: 'Send a sign-in code by SMS',
     description:
-      'Sends a 6-digit code valid for 5 minutes. Up to 3 codes per number per 10 minutes. The response is the same whether or not the number has an account.',
+      '**On hold: answers 503 `sms_sign_in_off` while `SMS_PROVIDER=off` (the default). Use email sign-in.** Sends a 6-digit code valid for 5 minutes. Up to 3 codes per number per 10 minutes. The response is the same whether or not the number has an account.',
   })
   @DocBody(OtpRequest)
-  @DocResponse(202, OtpRequested, 'Code sent', [422, 429])
+  @DocResponse(202, OtpRequested, 'Code sent', [422, 429, 503])
   requestOtp(@ValidBody(OtpRequest) body: z.output<typeof OtpRequest>) {
     return this.identity.requestOtp(body.phone);
   }
@@ -59,10 +59,10 @@ export class IdentityController {
   @ApiOperation({
     summary: 'Sign in with the SMS code',
     description:
-      'Creates a guest account on first sign-in (guest and business apps). Console sign-in only works for Stayvinci staff. Check `second_factor` in the response: owners and staff must complete two-step verification before using protected areas.',
+      '**On hold while `SMS_PROVIDER=off`.** Creates a guest account on first sign-in (guest and business apps). Console sign-in only works for Stayvinci staff. Check `second_factor` in the response: owners and staff must complete two-step verification before using protected areas.',
   })
   @DocBody(OtpVerify)
-  @DocResponse(200, Tokens, 'Signed in', [422, 429])
+  @DocResponse(200, Tokens, 'Signed in', [422, 429, 503])
   verifyOtp(@ValidBody(OtpVerify) body: z.output<typeof OtpVerify>, @Req() req: AppRequest) {
     return this.identity.verifyOtp(body.phone, body.code, body.audience, client(req));
   }

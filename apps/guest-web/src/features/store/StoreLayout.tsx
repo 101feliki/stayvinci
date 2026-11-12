@@ -21,7 +21,7 @@ import {
   cn,
 } from '@stayvinci/ui';
 import { marqueeColors, paintSection } from '@stayvinci/demo-data/design';
-import { api, type StoreView } from '../../mock/api';
+import { api, type StoreView } from '../../lib/api';
 import { EnterCode } from '../home/HomePage';
 
 export function useStore(): StoreView {
@@ -91,6 +91,9 @@ export function StoreLayout() {
   const navigate = useNavigate();
   const scrolled = useScrolled();
   const q = useQuery({ queryKey: ['store', handle], queryFn: () => api.store(handle) });
+  useEffect(() => {
+    if (q.data) api.visit(handle);
+  }, [q.data, handle]);
 
   if (q.error) {
     return (

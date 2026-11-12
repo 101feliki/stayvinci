@@ -7,11 +7,13 @@ import {
   useNavigate,
   useParams,
 } from 'react-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { CalendarDays, Compass, Home, User, Wallet } from 'lucide-react';
 import { Logo, cn } from '@stayvinci/ui';
-import { api } from '../mock/api';
-import { SignInProvider, useMe } from './shared';
+import { api } from '../lib/api';
+import { SignInProvider, takeReturnPath, useMe } from './shared';
 import { HomePage } from '../features/home/HomePage';
 import { DiscoverPage, ListingPage } from '../features/discover/DiscoverPage';
 import { StoreLayout } from '../features/store/StoreLayout';
@@ -144,7 +146,43 @@ function InviteRedirect() {
   );
 }
 
+/** The emailed sign-in link lands here: /auth/magic?token=… */
+function MagicLink() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get('token') ?? '';
+    // Remove the token from the address bar and history straight away.
+    window.history.replaceState(null, '', '/auth/magic');
+    api.me
+      .finishLink(token)
+      .then(async () => {
+        await qc.invalidateQueries();
+        toast.success('Signed in');
+        navigate(takeReturnPath(), { replace: true });
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'This link did not work.'));
+  }, [navigate, qc]);
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <Logo on="light" className="h-10" />
+      {error ? (
+        <>
+          <p className="max-w-sm text-sm text-ink-muted">{error}</p>
+          <NavLink to="/" className="text-sm font-medium text-azure-700">
+            Back to Stayvinci
+          </NavLink>
+        </>
+      ) : (
+        <p className="text-sm text-ink-muted">Signing you in…</p>
+      )}
+    </div>
+  );
+}
+
 const router = createBrowserRouter([
+  { path: '/auth/magic', element: <MagicLink /> },
   { path: '/i/:code', element: <InviteRedirect /> },
   {
     element: <GuestShell />,
