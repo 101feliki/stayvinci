@@ -107,6 +107,27 @@ describe('migrations', () => {
     expect(again.applied).toEqual([]);
     expect(again.skipped.length).toBeGreaterThanOrEqual(6);
   });
+
+  it('treat a CRLF (Windows) and LF (git/Linux) copy of a migration as the same file', async () => {
+    const { createHash } = await import('node:crypto');
+    const { readFile } = await import('node:fs/promises');
+    const { MIGRATIONS_DIR } = await import('./migrate.js');
+    const lf = (await readFile(`${MIGRATIONS_DIR}0001_foundations.sql`, 'utf8')).replace(
+      /\r\n/g,
+      '\n',
+    );
+    const crlf = createHash('sha256').update(lf.replace(/\n/g, '\r\n')).digest('hex');
+    await database.runner.query('update schema_migration set checksum = $1 where version = $2', [
+      crlf,
+      '0001_foundations.sql',
+    ]);
+    const again = await migrate(database.runner);
+    expect(again.applied).toEqual([]);
+    const [row] = await database.runner.query<{ checksum: string }>(
+      "select checksum from schema_migration where version = '0001_foundations.sql'",
+    );
+    expect(row?.checksum).toBe(createHash('sha256').update(lf).digest('hex'));
+  });
 });
 
 describe('tenant isolation (row-level security)', () => {
@@ -349,14 +370,12 @@ describe('reviews', () => {
     });
     await failsWith(
       asTenantA((tx) =>
-        tx
-          .insert(review)
-          .values({
-            tenantId: ids.tenantA,
-            bookingId: b.id,
-            guestProfileId: ids.profileA,
-            rating: 5,
-          }),
+        tx.insert(review).values({
+          tenantId: ids.tenantA,
+          bookingId: b.id,
+          guestProfileId: ids.profileA,
+          rating: 5,
+        }),
       ),
       /completed booking/,
     );
@@ -367,14 +386,12 @@ describe('reviews', () => {
         .where(eq(booking.ref, 'SV-REV1'));
       if (!b) throw new Error('no booking');
       await tx.update(booking).set({ state: 'completed' }).where(eq(booking.id, b.id));
-      await tx
-        .insert(review)
-        .values({
-          tenantId: ids.tenantA,
-          bookingId: b.id,
-          guestProfileId: ids.profileA,
-          rating: 5,
-        });
+      await tx.insert(review).values({
+        tenantId: ids.tenantA,
+        bookingId: b.id,
+        guestProfileId: ids.profileA,
+        rating: 5,
+      });
     });
   });
 });

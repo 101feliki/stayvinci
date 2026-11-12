@@ -8,6 +8,8 @@ export interface SqlRunner {
   query<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
 }
 
+const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+
 export const MIGRATIONS_DIR = fileURLToPath(new URL('../migrations/', import.meta.url));
 
 export interface MigrationResult {
@@ -36,11 +38,20 @@ export async function migrate(db: SqlRunner, dir = MIGRATIONS_DIR): Promise<Migr
   const files = (await readdir(dir)).filter((f) => /^\d{4}_[a-z0-9_]+\.sql$/.test(f)).sort();
   const result: MigrationResult = { applied: [], skipped: [] };
   for (const file of files) {
-    const sql = await readFile(new URL(file, `file://${dir.replace(/\\/g, '/')}/`), 'utf8');
-    const checksum = createHash('sha256').update(sql).digest('hex');
+    const raw = await readFile(new URL(file, `file://${dir.replace(/\\/g, '/')}/`), 'utf8');
+    // Line endings differ between a Windows checkout (CRLF) and git/Linux (LF); the checksum
+    // covers the SQL, not the line endings.
+    const sql = raw.replace(/\r\n/g, '\n');
+    const checksum = sha256(sql);
     const known = done.get(file);
     if (known) {
-      if (known !== checksum)
+      if (known === sha256(sql.replace(/\n/g, '\r\n'))) {
+        // Recorded from a CRLF checkout before checksums were normalised.
+        await db.query('update schema_migration set checksum = $1 where version = $2', [
+          checksum,
+          file,
+        ]);
+      } else if (known !== checksum)
         throw new Error(
           `Migration ${file} changed after it was applied. Add a new migration instead.`,
         );
