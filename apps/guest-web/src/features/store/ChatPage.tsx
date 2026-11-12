@@ -1,27 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Send, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, MessageCircleOff, Send, ShieldCheck } from 'lucide-react';
 import { Button, Textarea, cn } from '@stayvinci/ui';
 import { time } from '@stayvinci/demo-data/format';
 import { api } from '../../lib/api';
-import { useAction } from '../../app/shared';
+import { useAction, useMe, useSignIn } from '../../app/shared';
 
 /** In-app chat with the House; no phone numbers exchanged (spec §9). */
 export function ChatPage() {
   const { handle = '' } = useParams();
   const navigate = useNavigate();
+  const me = useMe();
+  const { requireSignIn } = useSignIn();
+  const signedIn = !!me.data?.signedIn;
   const chat = useQuery({
     queryKey: ['chat', handle],
     queryFn: () => api.chat.get(handle),
-    refetchInterval: 2000,
+    enabled: signedIn,
+    // New replies show within a few seconds while the chat is open (paused in background).
+    refetchInterval: 4000,
   });
+  const store = useQuery({ queryKey: ['store', handle], queryFn: () => api.store(handle) });
+  const tz = store.data?.tenant.timezone ?? 'Africa/Nairobi';
+  const enabled = chat.data ? chat.data.enabled : (store.data?.chatEnabled ?? true);
   const [draft, setDraft] = useState('');
   const end = useRef<HTMLDivElement>(null);
   const send = useAction((body: string) => api.chat.send(handle, body), {
-    onSuccess: () => setDraft(''),
+    onSuccess: () => {
+      setDraft('');
+      void chat.refetch();
+    },
   });
-  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [chat.data?.messages.length]);
+  useEffect(() => {
+    // Braces matter: newer browsers return a Promise from scrollIntoView, and an effect
+    // must return nothing (or a clean-up function).
+    void end.current?.scrollIntoView({ block: 'end' });
+  }, [chat.data?.messages.length]);
 
   return (
     <div className="flex h-dvh flex-col bg-canvas">
@@ -34,7 +49,9 @@ export function ChatPage() {
         >
           <ArrowLeft className="size-5" />
         </button>
-        <div className="flex-1 text-sm font-semibold">{chat.data?.storeName ?? 'Messages'}</div>
+        <div className="flex-1 truncate text-sm font-semibold">
+          {chat.data?.storeName ?? store.data?.tenant.name ?? 'Messages'}
+        </div>
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-5">
         <div className="mx-auto flex w-fit items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-[11px] text-ink-subtle shadow-sm">
@@ -61,42 +78,64 @@ export function ChatPage() {
                   m.from === 'guest' ? 'text-emerald-200' : 'text-ink-subtle',
                 )}
               >
-                {time(m.at, 'Africa/Nairobi')}
+                {time(m.at, tz)}
               </div>
             </div>
           </div>
         ))}
-        {chat.data && chat.data.messages.length === 0 ? (
+        {!signedIn && !me.isLoading ? (
+          <div className="mx-auto max-w-xs pt-10 text-center">
+            <p className="text-sm text-ink-muted">
+              Sign in to message this House. Your phone number and email stay hidden from them.
+            </p>
+            <Button className="mt-4" onClick={() => requireSignIn(me.data, () => undefined)}>
+              Sign in
+            </Button>
+          </div>
+        ) : null}
+        {chat.data && chat.data.messages.length === 0 && enabled ? (
           <p className="pt-10 text-center text-sm text-ink-muted">
             Ask about times, services or directions.
           </p>
         ) : null}
+        {chat.isError ? (
+          <p className="pt-10 text-center text-sm text-ink-muted">
+            {chat.error instanceof Error ? chat.error.message : 'Messages could not load.'}
+          </p>
+        ) : null}
         <div ref={end} />
       </div>
-      <form
-        className="flex items-end gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (draft.trim()) send.mutate(draft.trim());
-        }}
-      >
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Message"
-          rows={1}
-          className="min-h-11 flex-1 resize-none"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          className="size-11 rounded-full"
-          aria-label="Send"
-          loading={send.isPending}
+      {!enabled ? (
+        <div className="flex items-center justify-center gap-2 border-t border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-ink-muted">
+          <MessageCircleOff className="size-4" />
+          This House isn’t taking messages here. You can still book.
+        </div>
+      ) : signedIn ? (
+        <form
+          className="flex items-end gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (draft.trim()) send.mutate(draft.trim());
+          }}
         >
-          {send.isPending ? null : <Send className="size-4" />}
-        </Button>
-      </form>
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Message"
+            rows={1}
+            className="min-h-11 flex-1 resize-none"
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="size-11 rounded-full"
+            aria-label="Send"
+            loading={send.isPending}
+          >
+            {send.isPending ? null : <Send className="size-4" />}
+          </Button>
+        </form>
+      ) : null}
     </div>
   );
 }

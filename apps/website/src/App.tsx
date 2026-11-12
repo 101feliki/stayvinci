@@ -54,10 +54,10 @@ function Shell() {
             ))}
           </nav>
           <a
-            href={GUEST_APP_URL}
+            href={`${GUEST_APP_URL}/?install=1`}
             className="ml-auto hidden rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-obsidian-900 transition hover:bg-ivory sm:inline-flex lg:ml-2"
           >
-            Open the app
+            Get the app
           </a>
           <button
             type="button"
@@ -82,10 +82,10 @@ function Shell() {
               </a>
             ))}
             <a
-              href={GUEST_APP_URL}
+              href={`${GUEST_APP_URL}/?install=1`}
               className="mt-3 flex justify-center rounded-full bg-white py-3 text-sm font-semibold text-obsidian-900"
             >
-              Open the app
+              Get the app
             </a>
           </nav>
         ) : null}
@@ -99,7 +99,7 @@ function Shell() {
 
 function Footer() {
   return (
-    <footer className="bg-obsidian-900 text-white">
+    <footer className="bg-emerald-sheen text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr] lg:px-10">
         <div>
           <Logo on="dark" className="h-11" />
@@ -114,8 +114,8 @@ function Footer() {
           </div>
           <ul className="mt-3 space-y-2 text-sm text-white/80">
             <li>
-              <a href={GUEST_APP_URL} className="hover:text-white">
-                Open the app
+              <a href={`${GUEST_APP_URL}/?install=1`} className="hover:text-white">
+                Get the app
               </a>
             </li>
             <li>

@@ -364,6 +364,7 @@ export const storefront = pgTable('storefront', {
   socials: jsonb('socials').$type<Record<string, string>>().notNull().default({}),
   policies: jsonb('policies').$type<Record<string, string>>().notNull().default({}),
   published: boolean('published').notNull().default(false),
+  chatEnabled: boolean('chat_enabled').notNull().default(true),
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 });
@@ -385,6 +386,29 @@ export const review = pgTable('review', {
   published: boolean('published').notNull().default(true),
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+/* ---------- Chat ---------- */
+
+export const conversation = pgTable('conversation', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull(),
+  guestProfileId: uuid('guest_profile_id').notNull(),
+  lastMessageAt: ts('last_message_at').notNull().defaultNow(),
+  lastSender: text('last_sender').$type<'guest' | 'house'>(),
+  guestReadAt: ts('guest_read_at'),
+  houseReadAt: ts('house_read_at'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+});
+
+export const message = pgTable('message', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull(),
+  conversationId: uuid('conversation_id').notNull(),
+  sender: text('sender').$type<'guest' | 'house'>().notNull(),
+  authorUserId: uuid('author_user_id'),
+  body: text('body').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
 });
 
 /* ---------- Payments ---------- */

@@ -170,6 +170,17 @@ export class StoresService {
     return row;
   }
 
+  /** The House behind a store the guest can see (chat and other guest actions). */
+  async resolve(
+    handle: string,
+    code: string | null,
+  ): Promise<{ tenantId: string; name: string; chatEnabled: boolean }> {
+    return this.data.publicStore(code, async (tx) => {
+      const row = await this.findStore(tx, handle);
+      return { tenantId: row.t.id, name: row.t.name, chatEnabled: row.s.chatEnabled };
+    });
+  }
+
   async detail(handle: string, code: string | null): Promise<Detail> {
     return this.data.publicStore(code, async (tx) => {
       const row = await this.findStore(tx, handle);
@@ -244,6 +255,7 @@ export class StoresService {
         design: row.s.design,
         socials: row.s.socials,
         policies: row.s.policies,
+        chat_enabled: row.s.chatEnabled,
         locations: locs.map((l) => ({ ...l, hours: l.hours })),
         categories: cats,
         services: svcs
@@ -650,6 +662,7 @@ const storefrontPublicCols = {
   design: storefront.design,
   socials: storefront.socials,
   policies: storefront.policies,
+  chatEnabled: storefront.chatEnabled,
 };
 type StorefrontPublic = {
   [K in keyof typeof storefrontPublicCols]: (typeof storefront.$inferSelect)[K];

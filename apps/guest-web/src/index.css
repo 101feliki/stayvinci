@@ -4,17 +4,9 @@
 @source '../../../packages/ui/src';
 
 /*
- * Guest app chrome: obsidian black and white (luxury beauty-house look), with the gold
- * logo as the standout. Remapping the dark brand shades here turns every primary
- * button, active tab and hero in the guest app obsidian. Stores keep their own palettes.
+ * Guest app chrome: an obsidian header with the gold logo, and the brand emerald for
+ * primary buttons, active tabs and highlights. Stores keep their own palettes.
  */
-@theme {
-  --color-emerald-600: #2a2a2e;
-  --color-emerald-700: #1f1f22;
-  --color-emerald-800: #17171a;
-  --color-emerald-900: #0b0b0c;
-  --color-emerald-950: #050506;
-}
 
 /* Store cover photo settles in gently (a slow zoom-out), like an editorial campaign page. */
 @theme {

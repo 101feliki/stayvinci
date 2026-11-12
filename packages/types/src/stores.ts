@@ -128,6 +128,7 @@ export const StoreDetail = StoreCard.extend({
   team: z.array(PublicTeamMember),
   rooms: z.array(PublicRoom),
   reviews: z.array(PublicReview),
+  chat_enabled: z.boolean().describe('Show the chat button'),
 }).meta({ id: 'StoreDetail' });
 
 export const StoreEnter = z
@@ -229,6 +230,7 @@ export const Storefront = z
     socials: z.record(z.string(), z.string()),
     policies: z.record(z.string(), z.string()),
     published: z.boolean(),
+    chat_enabled: z.boolean().describe('Guests can message the House from the store'),
     access_code: z.string().nullable(),
   })
   .meta({ id: 'Storefront' });
@@ -248,6 +250,7 @@ export const StorefrontUpdate = z
     socials: z.record(z.string(), Text(200)),
     policies: z.record(z.string(), Text(2000)),
     published: z.boolean(),
+    chat_enabled: z.boolean(),
     access_code: z
       .string()
       .regex(/^[A-Za-z0-9-]{4,24}$/)

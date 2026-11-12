@@ -50,10 +50,12 @@ export function StoreSocials({
   size?: string;
 }) {
   const handle = s.tenant.handle;
-  if (!s.socials.length) return null;
+  // Links without a URL open the in-app chat, so they disappear when chat is off.
+  const links = s.socials.filter((a) => a.url || s.chatEnabled);
+  if (!links.length) return null;
   return (
     <div className={cn('flex items-center gap-1', className)}>
-      {s.socials.map((a) =>
+      {links.map((a) =>
         a.url ? (
           <a
             key={a.network}
@@ -198,13 +200,15 @@ export function StoreLayout() {
             </span>
           </Link>
           <StoreSocials s={s} className="hidden lg:flex" size="size-[18px]" />
-          <Link
-            to={`/s/${handle}/chat`}
-            className="rounded-full p-2 hover:bg-white/10"
-            aria-label="Message the House"
-          >
-            <MessageCircle className="size-5" />
-          </Link>
+          {s.chatEnabled ? (
+            <Link
+              to={`/s/${handle}/chat`}
+              className="rounded-full p-2 hover:bg-white/10"
+              aria-label="Message the House"
+            >
+              <MessageCircle className="size-5" />
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => navigate(`/s/${handle}/menu`)}

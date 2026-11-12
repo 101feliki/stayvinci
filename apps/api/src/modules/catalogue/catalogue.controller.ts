@@ -75,6 +75,7 @@ const storefrontOut = (
   socials: s.socials,
   policies: s.policies,
   published: s.published,
+  chat_enabled: s.chatEnabled,
   access_code: accessCode,
 });
 
@@ -169,9 +170,10 @@ export class CatalogueController {
     return this.data.inTenant(req, async (tx) => {
       const tenantId = req.tenant?.id ?? '';
       await this.ensureStorefront(tx, tenantId);
-      const { access_code, logo_url, cover_url, ...rest } = b;
+      const { access_code, logo_url, cover_url, chat_enabled, ...rest } = b;
       const set = {
         ...rest,
+        ...(chat_enabled !== undefined && { chatEnabled: chat_enabled }),
         ...(logo_url !== undefined && { logoUrl: logo_url }),
         ...(cover_url !== undefined && { coverUrl: cover_url }),
       };

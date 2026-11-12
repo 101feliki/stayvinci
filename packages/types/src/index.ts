@@ -3,3 +3,4 @@
 export * from './capabilities.js';
 export * from './api.js';
 export * from './stores.js';
+export * from './chat.js';

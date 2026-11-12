@@ -99,7 +99,7 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       {/* Welcome + code entry: always visible (spec §7). Edge-to-edge editorial band. */}
-      <section className="relative -mt-5 ml-[calc(50%-50vw)] grid w-screen overflow-hidden bg-obsidian-sheen text-white md:-mt-8 md:min-h-[480px] md:grid-cols-[1.15fr_1fr]">
+      <section className="relative -mt-5 ml-[calc(50%-50vw)] grid w-screen overflow-hidden bg-emerald-sheen text-white md:-mt-8 md:min-h-[480px] md:grid-cols-[1.15fr_1fr]">
         <div className="relative z-10 flex flex-col justify-center px-5 py-10 sm:px-8 md:py-16 lg:pr-14 lg:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <div className="text-[11px] font-semibold tracking-[0.3em] text-white/60 uppercase">
             {me.data.signedIn
@@ -127,7 +127,7 @@ export function HomePage() {
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-obsidian-900 via-obsidian-900/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-900 via-emerald-900/20 to-transparent" />
         </div>
       </section>
 

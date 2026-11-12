@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { CalendarClock, Mic, MicOff, Radio, Users, Video, VideoOff, X } from 'lucide-react';
+import {
+  CalendarClock,
+  Mic,
+  MicOff,
+  Radio,
+  SwitchCamera,
+  Users,
+  Video,
+  VideoOff,
+  X,
+} from 'lucide-react';
 import {
   Badge,
   Button,
@@ -12,6 +22,7 @@ import {
   Input,
   Segmented,
   Switch,
+  cn,
 } from '@stayvinci/ui';
 import { api } from '../../mock/api';
 import type { ContentItem } from '../../mock/types';
@@ -288,6 +299,47 @@ export function ScheduleLiveDialog({
   );
 }
 
+/**
+ * Opens the camera at the best quality the device offers. Browsers default to 640x480
+ * when asked for plain `video: true`, which looks soft on phones; ask for 1080p and fall
+ * back to 720p, then to anything, so older devices still work.
+ */
+async function openCamera(facing: 'user' | 'environment'): Promise<MediaStream> {
+  const audio: MediaTrackConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+  const tries: MediaTrackConstraints[] = [
+    {
+      facingMode: facing,
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 30 },
+    },
+    {
+      facingMode: facing,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      frameRate: { ideal: 30 },
+    },
+    { facingMode: facing },
+  ];
+  let last: unknown;
+  for (const video of tries) {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video, audio });
+      // Tell the encoder to keep detail sharp rather than favour smooth motion.
+      s.getVideoTracks().forEach((t) => (t.contentHint = 'detail'));
+      return s;
+    } catch (e) {
+      last = e;
+      if (e instanceof DOMException && e.name === 'NotAllowedError') break;
+    }
+  }
+  throw last;
+}
+
 /** Host studio: camera preview (when allowed), viewers and controls. */
 function Studio({
   item,
@@ -299,31 +351,62 @@ function Studio({
   onEnd: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
+  const stream = useRef<MediaStream | null>(null);
   const [camera, setCamera] = useState<'pending' | 'on' | 'off' | 'blocked'>('pending');
   const [mic, setMic] = useState(true);
+  // Phones: the back camera is much sharper than the selfie camera.
+  const [facing, setFacing] = useState<'user' | 'environment'>('user');
+  const [canFlip, setCanFlip] = useState(false);
+  const [quality, setQuality] = useState<string | null>(null);
   const [viewers, setViewers] = useState(item.live?.attending ?? 3);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
+    let cancelled = false;
     const start = async () => {
+      stream.current?.getTracks().forEach((tr) => tr.stop());
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (video.current) video.current.srcObject = stream;
+        const s = await openCamera(facing);
+        if (cancelled) {
+          s.getTracks().forEach((tr) => tr.stop());
+          return;
+        }
+        stream.current = s;
+        if (video.current) video.current.srcObject = s;
+        const settings = s.getVideoTracks()[0]?.getSettings();
+        setQuality(settings?.height ? `${Math.min(settings.width ?? 0, settings.height)}p` : null);
+        const cams = (await navigator.mediaDevices.enumerateDevices()).filter(
+          (d) => d.kind === 'videoinput',
+        );
+        setCanFlip(cams.length > 1);
         setCamera('on');
       } catch {
         setCamera('blocked');
       }
     };
     void start();
+    return () => {
+      cancelled = true;
+    };
+  }, [facing]);
+
+  useEffect(() => {
     const t = setInterval(
       () => setViewers((v) => Math.max(1, v + (Math.random() < 0.65 ? 1 : -1))),
       3000,
     );
     return () => {
       clearInterval(t);
-      stream?.getTracks().forEach((tr) => tr.stop());
+      stream.current?.getTracks().forEach((tr) => tr.stop());
     };
   }, []);
+
+  // The buttons really switch the tracks off, not just the icons.
+  useEffect(() => {
+    stream.current?.getAudioTracks().forEach((tr) => (tr.enabled = mic));
+  }, [mic, camera]);
+  useEffect(() => {
+    stream.current?.getVideoTracks().forEach((tr) => (tr.enabled = camera === 'on'));
+  }, [camera]);
 
   return (
     <DialogPrimitive.Root open onOpenChange={(o) => (o ? null : onClose())}>
@@ -342,7 +425,11 @@ function Studio({
               autoPlay
               muted
               playsInline
-              className={camera === 'on' ? 'h-full w-full object-cover' : 'hidden'}
+              className={
+                camera === 'on'
+                  ? cn('h-full w-full object-cover', facing === 'user' && '-scale-x-100')
+                  : 'hidden'
+              }
             />
             {camera !== 'on' ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-white/70">
@@ -361,6 +448,11 @@ function Studio({
               <span className="flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-xs backdrop-blur">
                 <Users className="size-3.5" /> {viewers} watching
               </span>
+              {quality && camera === 'on' ? (
+                <span className="rounded-full bg-black/40 px-2.5 py-1 text-xs backdrop-blur">
+                  {quality}
+                </span>
+              ) : null}
             </div>
             <DialogPrimitive.Close className="absolute top-3 right-3 rounded-full bg-black/40 p-2 backdrop-blur hover:bg-black/60">
               <X className="size-4" />
@@ -390,6 +482,16 @@ function Studio({
             >
               {camera === 'on' ? <Video className="size-5" /> : <VideoOff className="size-5" />}
             </button>
+            {canFlip ? (
+              <button
+                type="button"
+                onClick={() => setFacing((f) => (f === 'user' ? 'environment' : 'user'))}
+                className="rounded-full bg-white/10 p-3 hover:bg-white/20"
+                aria-label={facing === 'user' ? 'Use the back camera' : 'Use the front camera'}
+              >
+                <SwitchCamera className="size-5" />
+              </button>
+            ) : null}
             <Button variant="danger" onClick={onEnd}>
               End live
             </Button>

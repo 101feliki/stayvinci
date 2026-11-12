@@ -20,6 +20,7 @@ import { IdentityService } from './modules/identity/identity.service.js';
 import { MeController } from './modules/me/me.controller.js';
 import { HouseBookingsController } from './modules/bookings/house-bookings.controller.js';
 import { CatalogueController } from './modules/catalogue/catalogue.controller.js';
+import { GuestChatController, HouseChatController } from './modules/chat/chat.controller.js';
 import { GuestBookingsController, StoresController } from './modules/stores/stores.controller.js';
 import { StoresService } from './modules/stores/stores.service.js';
 import { PlatformController } from './modules/platform/platform.controller.js';
@@ -60,6 +61,8 @@ class AppModule {
         GuestBookingsController,
         CatalogueController,
         HouseBookingsController,
+        GuestChatController,
+        HouseChatController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },

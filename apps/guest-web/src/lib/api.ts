@@ -1,6 +1,6 @@
 // Guest API client: talks to the Stayvinci API (apps/api). Same function names the screens
 // used with the prototype data, so pages stay unchanged where the backend already exists.
-// Features without a backend yet (memberships, packages, gift cards, content, chat, wallet,
+// Features without a backend yet (memberships, packages, gift cards, content, wallet,
 // in-app payment) return empty data, so their screens show empty states instead of fake data.
 import {
   DEFAULT_MARQUEE,
@@ -211,6 +211,7 @@ interface Card {
 }
 interface Detail extends Card {
   about: string;
+  chat_enabled: boolean;
   amenities: string[];
   gallery: string[];
   design: Record<string, unknown>;
@@ -459,6 +460,7 @@ function toStoreView(d: Detail) {
     'location',
   ];
   return {
+    chatEnabled: d.chat_enabled,
     tenant: {
       name: d.name,
       handle: d.handle,
@@ -812,24 +814,32 @@ export const api = {
       giftCard: number;
     }[],
 
-  /** In-app messages arrive with notifications; until then the store page shows how to reach the House. */
+  /** Private chat with a House (no phone numbers exchanged). Needs the guest sign-in. */
   chat: {
     get: async (handle: string) => {
-      const s = await api.store(handle);
+      const r = await http<{
+        enabled: boolean;
+        store_name: string;
+        messages: { id: string; sender: 'guest' | 'house'; body: string; created_at: string }[];
+      }>('GET', `/v1/stores/${encodeURIComponent(handle)}/chat`, {
+        headers: storeHeaders(handle),
+      });
       return {
-        storeName: s.tenant.name,
-        messages: [] as {
-          id: string;
-          from: 'guest' | 'staff';
-          author: string;
-          body: string;
-          at: string;
-        }[],
+        enabled: r.enabled,
+        storeName: r.store_name,
+        messages: r.messages.map((m) => ({
+          id: m.id,
+          from: m.sender,
+          body: m.body,
+          at: m.created_at,
+        })),
       };
     },
-    send: async (_handle: string, _body: string) => {
-      throw new ApiError('Messages are coming soon. For now, add a note to your booking.');
-    },
+    send: async (handle: string, body: string) =>
+      http<{ id: string }>('POST', `/v1/stores/${encodeURIComponent(handle)}/chat`, {
+        headers: storeHeaders(handle),
+        body: { body, via: codeFor(handle) ? 'own_channel' : 'marketplace' },
+      }),
   },
 };
 

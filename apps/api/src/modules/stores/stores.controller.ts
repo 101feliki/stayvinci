@@ -33,13 +33,13 @@ import { StoresService } from './stores.service.js';
 const HANDLE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/i;
 const CODE = /^[A-Za-z0-9-]{4,24}$/;
 
-function handleOf(raw: string): string {
+export function handleOf(raw: string): string {
   if (!HANDLE.test(raw)) throw Errors.notFound('Store');
   return raw.toLowerCase();
 }
 
 /** The private store code, if the guest typed one. Malformed codes are simply ignored. */
-function codeOf(req: AppRequest): string | null {
+export function codeOf(req: AppRequest): string | null {
   const v = req.header('x-store-code');
   return v && CODE.test(v) ? v : null;
 }

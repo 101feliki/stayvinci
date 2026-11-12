@@ -233,7 +233,7 @@ function Solves() {
               key={s.fix}
               className="rounded-2xl border border-line bg-surface p-6 shadow-card"
             >
-              <span className="flex size-11 items-center justify-center rounded-xl bg-obsidian-900 text-gold-300 dark:bg-white/10">
+              <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-900 text-gold-300 dark:bg-emerald-800">
                 <s.icon className="size-5" />
               </span>
               <p className="mt-5 text-sm text-ink-subtle line-through decoration-ink-subtle/40">
@@ -276,7 +276,7 @@ const STEPS = [
 
 function Journey() {
   return (
-    <section className="bg-obsidian-sheen py-20 text-white md:py-28">
+    <section className="bg-emerald-sheen py-20 text-white md:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <SectionHead
           dark
@@ -298,10 +298,10 @@ function Journey() {
         </ol>
         <div className="mt-10">
           <a
-            href={GUEST_APP_URL}
-            className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-obsidian-900 transition hover:bg-ivory"
+            href={`${GUEST_APP_URL}/?install=1`}
+            className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-emerald-900 transition hover:bg-ivory"
           >
-            Open the app <ArrowRight className="size-4" />
+            Get the app <ArrowRight className="size-4" />
           </a>
         </div>
       </div>
@@ -530,7 +530,7 @@ function ForBusiness() {
             </article>
           ))}
         </div>
-        <div className="mt-10 flex flex-col items-start justify-between gap-6 rounded-3xl bg-obsidian-sheen p-8 text-white md:flex-row md:items-center md:p-10">
+        <div className="mt-10 flex flex-col items-start justify-between gap-6 rounded-3xl bg-emerald-sheen p-8 text-white md:flex-row md:items-center md:p-10">
           <div>
             <h3 className="text-2xl font-semibold tracking-tight">Already a Stayvinci House?</h3>
             <p className="mt-1 text-white/70">
