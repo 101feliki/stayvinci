@@ -65,17 +65,11 @@ services:
         value: 'false'
       - key: SMS_PROVIDER
         value: 'off'
+      # Render's free tier blocks outgoing SMTP, so email goes over HTTPS through Brevo.
+      # MAIL_FROM must be a sender address verified in Brevo.
       - key: MAIL_TRANSPORT
-        value: smtp
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: '465'
-      - key: SMTP_SECURE
-        value: 'true'
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASSWORD
+        value: brevo
+      - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM
         sync: false

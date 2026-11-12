@@ -45,6 +45,47 @@ export class SmtpMailer implements Mailer {
   }
 }
 
+/** Splits `Name <email@x>` (or a bare address) into Brevo's sender shape. */
+export function parseSender(from: string): { name?: string; email: string } {
+  const m = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(from);
+  const email = m?.[2]?.trim();
+  if (!email) return { email: from.trim() };
+  const name = m?.[1]?.trim();
+  return name ? { name, email } : { email };
+}
+
+/**
+ * Brevo's HTTPS email API (MAIL_TRANSPORT=brevo). For hosts that block outgoing SMTP, such as
+ * Render's free tier. Brevo can send from a single verified address, so no domain is needed.
+ */
+export class BrevoMailer implements Mailer {
+  constructor(
+    private readonly config: Config,
+    private readonly http: typeof fetch = fetch,
+  ) {}
+
+  async send(m: MailMessage): Promise<void> {
+    const res = await this.http('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': this.config.brevoApiKey ?? '',
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: parseSender(this.config.smtp.from),
+        to: [{ email: m.to }],
+        subject: m.subject,
+        textContent: m.text,
+        htmlContent: m.html,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    // Never log the body we sent (it holds the sign-in link) or the recipient.
+    if (!res.ok) throw new Error(`Brevo refused the email (HTTP ${res.status})`);
+  }
+}
+
 /**
  * Development only (MAIL_TRANSPORT=console): prints the plain-text email, including its
  * sign-in link, to the API log. Config refuses this in production.

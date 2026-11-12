@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { connect, migrate } from '@stayvinci/db';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
-import { ConsoleMailer, SmtpMailer } from './notifications/mailer.js';
+import { BrevoMailer, ConsoleMailer, SmtpMailer } from './notifications/mailer.js';
 import { AfricasTalkingSms, ConsoleSms, DisabledSms, MemorySms } from './notifications/sms.js';
 
 const log = new Logger('Startup');
@@ -26,7 +26,12 @@ const sms =
 const app = await createApp({
   config,
   database,
-  mailer: config.mailTransport === 'console' ? new ConsoleMailer() : new SmtpMailer(config),
+  mailer:
+    config.mailTransport === 'console'
+      ? new ConsoleMailer()
+      : config.mailTransport === 'brevo'
+        ? new BrevoMailer(config)
+        : new SmtpMailer(config),
   sms,
 });
 await app.listen(config.port);

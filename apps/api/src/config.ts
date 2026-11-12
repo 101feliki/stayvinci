@@ -23,7 +23,8 @@ const Env = z.object({
   DOCS_USER: z.string().optional(),
   DOCS_PASSWORD: z.string().optional(),
   // "smtp" sends through SMTP_*; "console" prints emails (with their links) to the API log, development only.
-  MAIL_TRANSPORT: z.enum(['smtp', 'console']).default('smtp'),
+  MAIL_TRANSPORT: z.enum(['smtp', 'brevo', 'console']).default('smtp'),
+  BREVO_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('127.0.0.1'),
   SMTP_PORT: z.coerce.number().int().default(1025),
   SMTP_SECURE: bool.default(false),
@@ -50,7 +51,8 @@ export interface Config {
   accessTtl: number;
   refreshTtlDays: number;
   docs: { enabled: boolean; user: string | null; password: string | null };
-  mailTransport: 'smtp' | 'console';
+  mailTransport: 'smtp' | 'brevo' | 'console';
+  brevoApiKey: string | null;
   smtp: {
     host: string;
     port: number;
@@ -105,6 +107,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     throw new Error('Use PostgreSQL in production; PGlite is for development and tests.');
   if (prod && e.MAIL_TRANSPORT === 'console')
     throw new Error('MAIL_TRANSPORT=console prints sign-in links; use smtp in production.');
+  if (e.MAIL_TRANSPORT === 'brevo' && !e.BREVO_API_KEY)
+    throw new Error('MAIL_TRANSPORT=brevo needs BREVO_API_KEY.');
   if (prod && (e.SMS_PROVIDER === 'console' || e.SMS_PROVIDER === 'memory'))
     throw new Error(
       'SMS_PROVIDER must be "off" or a real provider in production (console prints codes).',
@@ -143,6 +147,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
       password: e.DOCS_PASSWORD ?? null,
     },
     mailTransport: e.MAIL_TRANSPORT,
+    brevoApiKey: e.BREVO_API_KEY ?? null,
     smtp: {
       host: e.SMTP_HOST,
       port: e.SMTP_PORT,
