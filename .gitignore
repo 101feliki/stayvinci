@@ -15,3 +15,8 @@ stayvinci-handoff/
 
 # Local PGlite database files
 .data/
+
+# Kept locally only: documentation, specs and assistant instructions (only README.md is published)
+*.md
+!/README.md
+!packages/demo-data/media/CREDITS.md
