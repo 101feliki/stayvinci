@@ -1,0 +1,23 @@
+{
+  "name": "@stayvinci/demo-data",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Demo domain types, seed data and formatting helpers shared by the prototype apps until apps/api exists.",
+  "type": "module",
+  "exports": {
+    "./types": "./src/types.ts",
+    "./seed": "./src/seed.ts",
+    "./format": "./src/format.ts",
+    "./platform": "./src/platform.ts",
+    "./design": "./src/design.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@stayvinci/config": "workspace:*"
+  }
+}

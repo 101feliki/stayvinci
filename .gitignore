@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+*.log
+.DS_Store
+# secrets: only .env.example files are committed
+.env
+.env.*
+!.env.example
+# original handoff pack (already copied into the repo)
+stayvinci-handoff/
+.qa-output/
+
+# Local PGlite database files
+.data/

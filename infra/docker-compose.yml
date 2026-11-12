@@ -1,0 +1,55 @@
+# Local services for development: PostgreSQL 16, Redis, Mailpit.
+# Start:  docker compose -f infra/docker-compose.yml up -d
+# All ports bind to 127.0.0.1 only, so nothing is reachable from your network.
+name: stayvinci
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres # superuser, only for the init script below
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres-local-only}
+      POSTGRES_DB: postgres
+      APP_DB_NAME: stayvinci
+      APP_DB_USER: stayvinci
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-stayvinci-local-only}
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--requirepass',
+        '${REDIS_PASSWORD:-redis-local-only}',
+      ]
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redisdata:/data
+
+  mailpit:
+    # Catches every email the API sends (activation, magic links, password resets).
+    # Inbox: http://localhost:8025
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # web inbox
+
+volumes:
+  pgdata:
+  redisdata:

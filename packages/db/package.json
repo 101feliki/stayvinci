@@ -1,0 +1,32 @@
+{
+  "name": "@stayvinci/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Database: Drizzle schema, SQL migrations with row-level security, request-scoped access, dev seed.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "migrate": "cd ../../apps/api && node --env-file-if-exists=.env ../../packages/db/dist/cli.js migrate",
+    "seed": "cd ../../apps/api && node --env-file-if-exists=.env ../../packages/db/dist/cli.js seed"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "@types/pg": "8.23.1"
+  },
+  "bin": {
+    "stayvinci-db": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "migrations"
+  ]
+}

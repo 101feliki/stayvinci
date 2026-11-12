@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+@import '@stayvinci/ui/theme.css';
+
+/* Scan the design-system sources for utility classes. */
+@source '../../../packages/ui/src';

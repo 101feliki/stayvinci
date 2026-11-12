@@ -1,0 +1,26 @@
+{
+  // Keep the Explorer readable: hide generated folders and fold config files
+  // under the file they belong to (click the arrow next to package.json to see them).
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.turbo": true,
+    "stayvinci-handoff": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "pnpm-lock.yaml": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "pnpm-lock.yaml, pnpm-workspace.yaml, turbo.json, .nvmrc, .npmrc, tsconfig*.json, eslint.config.js, prettier.config.js, .prettierignore, commitlint.config.js, .editorconfig, .gitattributes, .gitignore, vite.config.ts, tailwind-js-scanner.ts",
+    "CLAUDE.md": "AGENTS.md",
+    "README.md": "*.md.bak",
+    "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx",
+    "*.ts": "${capture}.test.ts, ${capture}.spec.ts"
+  },
+  "explorer.compactFolders": false,
+  "explorer.sortOrder": "foldersNestsFiles"
+}

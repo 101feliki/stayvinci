@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#092720" />
+    <link rel="icon" type="image/svg+xml" href="/brand/mark-on-light.svg" />
+    <!-- Neutral title: never shows a store or service name in the tab (discretion, spec §7). -->
+    <title>Stayvinci</title>
+    <!-- Apply the saved theme before first paint (same logic as THEME_BOOT_SCRIPT in @stayvinci/ui). -->
+    <script>try{var t=localStorage.getItem('sv.theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light'}catch(e){}</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

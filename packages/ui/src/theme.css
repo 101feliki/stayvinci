@@ -1,0 +1,264 @@
+/*
+ * Stayvinci design tokens (Tailwind v4 @theme).
+ * Brand: Emerald + Champagne gold + Ivory from the logo, with Azure as the
+ * interactive accent. Inter for all interface and heading text.
+ *
+ * Contrast notes:
+ * - azure-500 (#00AFF0) is for fills, focus rings, dots and badges, never body text on white.
+ *   Use azure-700 for text links on light surfaces.
+ * - gold-400 is for accents on emerald surfaces; use gold-700 for gold text on light surfaces.
+ */
+
+/* Dark mode follows the data-theme attribute set by the theme switcher (system, light or dark). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --font-sans:
+    'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Obsidian: the guest app's black, with white, in the spirit of luxury beauty houses */
+  --color-obsidian-950: #050506;
+  --color-obsidian-900: #0b0b0c;
+  --color-obsidian-800: #17171a;
+  --color-obsidian-700: #242428;
+  --color-obsidian-600: #34343a;
+
+  /* Emerald (brand #092720) */
+  --color-emerald-50: #eef5f2;
+  --color-emerald-100: #d5e7e0;
+  --color-emerald-200: #a9cfc1;
+  --color-emerald-300: #74b19b;
+  --color-emerald-400: #3f8c72;
+  --color-emerald-500: #236e56;
+  --color-emerald-600: #175643;
+  --color-emerald-700: #124535;
+  --color-emerald-800: #0f3329;
+  --color-emerald-900: #092720;
+  --color-emerald-950: #061713;
+
+  /* Champagne gold (logo mark #C8A96A) */
+  --color-gold-50: #faf6ec;
+  --color-gold-100: #f2e9d3;
+  --color-gold-200: #e6d4a9;
+  --color-gold-300: #d9bf86;
+  --color-gold-400: #c8a96a;
+  --color-gold-500: #b38f4c;
+  --color-gold-600: #94733a;
+  --color-gold-700: #765a2e;
+  --color-gold-800: #5a4424;
+
+  /* Azure (interactive accent, #00AFF0) */
+  --color-azure-50: #e6f7fe;
+  --color-azure-100: #c4ecfc;
+  --color-azure-200: #8ad9f8;
+  --color-azure-300: #45c4f4;
+  --color-azure-400: #14b6f1;
+  --color-azure-500: #00aff0;
+  --color-azure-600: #0091c8;
+  --color-azure-700: #00739f;
+  --color-azure-800: #005678;
+
+  /* Deep plum (rare accent: memberships, special states) */
+  --color-plum-50: #f5f0f6;
+  --color-plum-100: #e8dcea;
+  --color-plum-500: #6a4d70;
+  --color-plum-700: #4a3550;
+  --color-plum-900: #3b2a3f;
+
+  /* Neutrals and surfaces */
+  --color-ivory: #f5f1e8;
+  --color-charcoal: #1c1c1e;
+  --color-canvas: #faf8f4;
+  --color-surface: #ffffff;
+  --color-line: #e8e3d8;
+  --color-line-strong: #d6cfc0;
+  --color-ink: #1c1c1e;
+  --color-ink-muted: #5f5d58;
+  --color-ink-subtle: #8a877f;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+
+  /* Cards carry a slim gold line on the left edge (inset shadow follows the corner radius). */
+  --shadow-card:
+    inset 2px 0 0 var(--color-gold-400), 0 1px 2px rgb(28 28 30 / 0.04),
+    0 1px 3px rgb(28 28 30 / 0.06);
+  --shadow-card-hover:
+    inset 2px 0 0 var(--color-gold-400), 0 12px 32px -8px rgb(11 38 32 / 0.25),
+    0 2px 6px rgb(11 38 32 / 0.08);
+  --shadow-pop: 0 12px 32px -8px rgb(11 38 32 / 0.25), 0 2px 6px rgb(11 38 32 / 0.08);
+
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-slide-in-right: slide-in-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-scale-in: scale-in 160ms ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(24px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  /* Store marquee: moves exactly one copy's width, so the loop is seamless. */
+  --animate-marquee: marquee var(--marquee-duration, 30s) linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  /* Seasonal decorations drift gently. */
+  --animate-float: float 7s ease-in-out infinite;
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Only scale and fade: position must come from the element, never from the animation. */
+  @keyframes scale-in {
+    from {
+      transform: translateY(6px) scale(0.97);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-azure-500);
+    outline-offset: 2px;
+  }
+  /* Dark theme: only the neutral roles change, so every semantic class adapts. */
+  [data-theme='dark'] {
+    color-scheme: dark;
+    --color-canvas: #0d0e0f;
+    --color-surface: #16181a;
+    --color-line: #2a2d30;
+    --color-line-strong: #3a3e42;
+    --color-ink: #f2f0ea;
+    --color-ink-muted: #b8b5ad;
+    --color-ink-subtle: #8c8981;
+    --color-stone-100: #24272a;
+    --color-stone-200: #2e3135;
+    /* Tints used for chips, banners and icon tiles: deep in dark mode... */
+    /* Emerald is left as is: the sidebar uses its light shades as text on the dark brand surface. */
+    --color-azure-50: #0c2430;
+    --color-azure-100: #103446;
+    --color-azure-200: #18506b;
+    --color-gold-50: #2a2416;
+    --color-gold-100: #3a311d;
+    --color-gold-200: #524528;
+    --color-plum-50: #241b27;
+    --color-plum-100: #33263a;
+    --color-amber-50: #2b2112;
+    --color-amber-200: #4a3a1c;
+    --color-red-50: #2a1414;
+    --color-red-200: #4a2020;
+    /* ...and the text shades that sit on them turn light, so they stay readable. */
+    --color-azure-700: #6fd3f7;
+    --color-azure-800: #9ae2fa;
+    --color-gold-700: #e6cf9c;
+    --color-gold-800: #f0dfb8;
+    --color-plum-700: #d9c4e0;
+    --color-amber-700: #f8c070;
+    --color-amber-800: #fcd9a0;
+    --color-red-700: #f19a9a;
+    --color-red-800: #f6b5b5;
+    --shadow-card: inset 2px 0 0 var(--color-gold-400), 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-card-hover: inset 2px 0 0 var(--color-gold-400), 0 12px 32px -8px rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.4);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+ * Emerald with a gold reflection on the left: the signature brand surface.
+ * Use instead of plain bg-emerald-900 on large dark areas (sidebar, heroes,
+ * sign-in panel, primary buttons). A soft champagne glow rises from the left
+ * edge, with a hairline of gold along it.
+ */
+@utility bg-emerald-sheen {
+  background-color: var(--color-emerald-900);
+  background-image:
+    linear-gradient(
+      90deg,
+      rgb(200 169 106 / 0.4) 0,
+      rgb(200 169 106 / 0.4) 1.5px,
+      transparent 1.5px
+    ),
+    radial-gradient(
+      120% 90% at 0% 30%,
+      rgb(217 191 134 / 0.12) 0%,
+      rgb(200 169 106 / 0.04) 32%,
+      transparent 62%
+    ),
+    linear-gradient(90deg, rgb(200 169 106 / 0.05) 0%, transparent 40%);
+}
+
+/* Smaller version for buttons and chips: a faint glow, no hairline. */
+@utility bg-emerald-sheen-soft {
+  background-color: var(--color-emerald-900);
+  background-image: linear-gradient(
+    100deg,
+    rgb(217 191 134 / 0.07) 0%,
+    rgb(200 169 106 / 0.02) 30%,
+    transparent 60%
+  );
+}
+
+/* For cards and banners: pure brand colour with soft depth and no gold. */
+@utility bg-emerald-card {
+  background-color: var(--color-emerald-900);
+  background-image: radial-gradient(
+    120% 100% at 0% 0%,
+    rgb(255 255 255 / 0.06) 0%,
+    transparent 55%
+  );
+}
+
+/* Obsidian surface for the guest app: deep black with a quiet sheen of light. */
+@utility bg-obsidian-sheen {
+  background-color: var(--color-obsidian-900);
+  background-image:
+    radial-gradient(90% 120% at 100% 0%, rgb(255 255 255 / 0.07) 0%, transparent 55%),
+    radial-gradient(70% 90% at 0% 100%, rgb(255 255 255 / 0.04) 0%, transparent 60%);
+}

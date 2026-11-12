@@ -1,0 +1,9 @@
+{
+  "extends": "@stayvinci/config/tsconfig/react.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}
