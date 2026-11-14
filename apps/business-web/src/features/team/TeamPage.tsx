@@ -21,7 +21,7 @@ import {
   Tr,
   cn,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { Capability, Resource, TeamMember, TenantRole } from '../../mock/types';
 import { useCan, useSession } from '../../app/session';
 import { ErrorState, PageSkeleton } from '../../components/common';

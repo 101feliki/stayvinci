@@ -19,7 +19,7 @@ import {
   cn,
   LogoMark,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { AccessCode, VisibilityMode } from '../../mock/types';
 import { useSession } from '../../app/session';
 import { ErrorState, PageSkeleton } from '../../components/common';

@@ -190,6 +190,26 @@ describe('booking', () => {
     expect(Object.keys(b.guest).sort()).toEqual(['alias', 'id']);
   });
 
+  it("lists one guest's visits for the House without a date range", async () => {
+    const range = await h.http
+      .get(
+        `${A()}/bookings?from=${encodeURIComponent(new Date().toISOString())}&to=${encodeURIComponent(new Date(Date.now() + 3 * 86_400_000).toISOString())}`,
+      )
+      .set(bearer(owner))
+      .expect(200);
+    const b = range.body.items.find((x: { id: string }) => x.id === bookingId);
+    expect(b).toMatchObject({ version: 1, service_id: expect.any(String), variant_id: variantId });
+    const one = await h.http
+      .get(`${A()}/bookings?guest_id=${b.guest.id}`)
+      .set(bearer(owner))
+      .expect(200);
+    expect(one.body.items.map((x: { id: string }) => x.id)).toContain(bookingId);
+    expect(one.body.items.every((x: { guest: { id: string } }) => x.guest.id === b.guest.id)).toBe(
+      true,
+    );
+    await h.http.get(`${A()}/bookings`).set(bearer(owner)).expect(422);
+  });
+
   it('frees the time when the guest cancels', async () => {
     const res = await h.http
       .post(`/v1/me/bookings/${bookingId}/cancel`)

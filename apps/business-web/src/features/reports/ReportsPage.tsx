@@ -12,7 +12,7 @@ import {
   Th,
   Tr,
 } from '@stayvinci/ui';
-import { api, addDaysKey, todayKey } from '../../mock/api';
+import { api, addDaysKey, todayKey } from '../../lib/api';
 import { useCan, useSession } from '../../app/session';
 import { ErrorState, PageSkeleton, downloadCsv } from '../../components/common';
 import { BarList, ColumnChart, type Datum } from '../../components/charts';

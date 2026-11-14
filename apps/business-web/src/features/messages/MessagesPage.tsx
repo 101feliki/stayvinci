@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, MessageSquare, Send, ShieldCheck } from 'lucide-react';
 import { Avatar, Button, Card, EmptyState, PageHeader, Select, Textarea, cn } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useSession } from '../../app/session';
 import { ErrorState, PageSkeleton } from '../../components/common';
 import { guestName, relative, time } from '../../lib/format';
@@ -49,8 +49,7 @@ export function MessagesPage() {
 
   const open = (id: string) => {
     setActiveId(id);
-    const c = sorted.find((x) => x.id === id);
-    if (c?.unread) markRead.mutate(id);
+    markRead.mutate(id);
   };
 
   return (

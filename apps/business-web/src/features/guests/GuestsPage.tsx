@@ -20,7 +20,7 @@ import {
   Th,
   Tr,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useCan, useSession } from '../../app/session';
 import { ErrorState, HiddenContact, PageSkeleton, downloadCsv } from '../../components/common';
 import { date, guestName, money } from '../../lib/format';

@@ -20,7 +20,7 @@ import {
   Tr,
   ServiceVisual,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { ServicePicture } from './ServicePicture';
 import type { ItemVisibility, Service } from '../../mock/types';
 import { useSession } from '../../app/session';

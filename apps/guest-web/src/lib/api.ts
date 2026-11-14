@@ -350,7 +350,8 @@ function designOf(d: Detail) {
     theme,
     palette,
     accent: palette.accent,
-    logo: d.logo_url,
+    // A logo uploaded in the business app (until media storage) lives in the design.
+    logo: d.logo_url ?? (typeof raw.logo_image === 'string' ? raw.logo_image : null),
     season: active
       ? { id: active.id, name: active.name, motif: active.motif, colors: active.colors }
       : null,

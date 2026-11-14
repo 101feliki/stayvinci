@@ -10,7 +10,6 @@ import {
   Menu as MenuIcon,
   MoreHorizontal,
   Plus,
-  RotateCcw,
   Wrench,
   Search,
   X,
@@ -30,7 +29,7 @@ import {
   LogoMark,
   StoreLogo,
 } from '@stayvinci/ui';
-import { api } from '../mock/api';
+import { api } from '../lib/api';
 import type { TenantRole } from '../mock/types';
 import { ROLE_LABELS } from '../lib/capabilities';
 import { useTenantQuery } from '../lib/query';
@@ -136,9 +135,6 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
-      <div className="border-t border-emerald-800 px-5 py-3 text-[11px] text-emerald-300/70">
-        Demo data · prototype build
-      </div>
     </div>
   );
 }
@@ -215,25 +211,22 @@ function UserMenu() {
           <div className="text-sm font-medium">{session.personName}</div>
           <div className="text-xs text-ink-subtle">{ROLE_LABELS[session.role]} · 2FA on</div>
         </div>
+        {session.role === 'owner' || session.viewAs ? (
+          <>
+            <MenuSeparator />
+            <MenuLabel>See the app as</MenuLabel>
+            {(Object.keys(ROLE_LABELS) as TenantRole[]).map((r) => (
+              <MenuItem key={r} onSelect={() => void viewAs(r === 'owner' ? null : r)}>
+                <Eye className="size-4 text-ink-subtle" />
+                <span className="flex-1">{ROLE_LABELS[r]}</span>
+                {(session.viewAs ?? 'owner') === r ? (
+                  <Check className="size-4 text-emerald-700" />
+                ) : null}
+              </MenuItem>
+            ))}
+          </>
+        ) : null}
         <MenuSeparator />
-        <MenuLabel>Preview as role (demo)</MenuLabel>
-        {(Object.keys(ROLE_LABELS) as TenantRole[]).map((r) => (
-          <MenuItem key={r} onSelect={() => void viewAs(r === 'owner' ? null : r)}>
-            <Eye className="size-4 text-ink-subtle" />
-            <span className="flex-1">{ROLE_LABELS[r]}</span>
-            {(session.viewAs ?? 'owner') === r ? (
-              <Check className="size-4 text-emerald-700" />
-            ) : null}
-          </MenuItem>
-        ))}
-        <MenuSeparator />
-        <MenuItem
-          onSelect={() => {
-            void api.session.resetDemo().then(() => qc.invalidateQueries());
-          }}
-        >
-          <RotateCcw className="size-4 text-ink-subtle" /> Reset demo data
-        </MenuItem>
         <MenuItem
           onSelect={() => {
             void api.session.signOut().then(() => qc.invalidateQueries());

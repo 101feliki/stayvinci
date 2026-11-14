@@ -95,12 +95,10 @@ export const Tokens = z
   })
   .meta({ id: 'Tokens' });
 
-export const TotpSetup = z
-  .object({ otpauth_url: z.string(), secret: z.string() })
-  .meta({
-    id: 'TotpSetup',
-    description: 'Shown once. Add to an authenticator app, then call /totp/enable.',
-  });
+export const TotpSetup = z.object({ otpauth_url: z.string(), secret: z.string() }).meta({
+  id: 'TotpSetup',
+  description: 'Shown once. Add to an authenticator app, then call /totp/enable.',
+});
 
 /* ---------- Me ---------- */
 
@@ -189,11 +187,20 @@ export const Member = z
 export const MemberInvite = z
   .object({
     full_name: z.string().trim().min(2).max(120),
-    phone: PhoneE164,
+    phone: PhoneE164.optional(),
     email: Email.optional(),
     role: z.enum(TENANT_ROLES).exclude(['owner']),
   })
+  .refine((v) => v.phone || v.email, 'Send an email or a phone number')
   .meta({ id: 'MemberInvite' });
+
+export const MyInvitation = z
+  .object({
+    membership_id: Uuid,
+    tenant_name: z.string(),
+    role: z.enum(TENANT_ROLES),
+  })
+  .meta({ id: 'MyInvitation' });
 
 export const MemberUpdate = z
   .object({
@@ -213,10 +220,23 @@ export const Guest = z
     display_name: z.string(),
     first_touch_source: z.enum(['own_channel', 'marketplace']),
     tags: z.array(z.string()),
+    visits: z.number().int().describe('Completed visits'),
+    spend_minor: z.number().int().describe('Total of completed visits, in minor units'),
+    last_visit_at: z.string().nullable(),
+    joined_at: z.string().describe('When this guest first came to the House'),
+    notes: z.string().describe('Private notes from the team; never shown to the guest'),
     phone: z.string().optional().describe('Only present with the guest.contact.view capability'),
     email: z.string().optional().describe('Only present with the guest.contact.view capability'),
   })
   .meta({ id: 'Guest' });
+
+export const GuestUpdate = z
+  .object({
+    notes: z.string().trim().max(2000).optional(),
+    tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Send at least one field')
+  .meta({ id: 'GuestUpdate' });
 
 /* ---------- Audit ---------- */
 

@@ -12,7 +12,7 @@ import {
   Select,
   cn,
 } from '@stayvinci/ui';
-import { api, todayKey } from '../../mock/api';
+import { api, todayKey } from '../../lib/api';
 import type { Booking, CalendarBlock, Resource } from '../../mock/types';
 import { useCan, useSession } from '../../app/session';
 import { useBookingDrawer, useUi } from '../../app/ui';

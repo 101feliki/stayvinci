@@ -12,7 +12,7 @@ import {
   PageHeader,
   Segmented,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { ContentItem } from '../../mock/types';
 import { ErrorState, PageSkeleton } from '../../components/common';
 import { money } from '../../lib/format';

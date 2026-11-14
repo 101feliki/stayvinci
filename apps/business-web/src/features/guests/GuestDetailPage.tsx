@@ -17,7 +17,7 @@ import {
   Th,
   Tr,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useCan, useSession } from '../../app/session';
 import { useBookingDrawer, useUi } from '../../app/ui';
 import {

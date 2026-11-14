@@ -60,6 +60,8 @@ export class HouseBookingsController {
         alias: guestProfile.alias,
         service: service.name,
         variant: serviceVariant.name,
+        serviceId: service.id,
+        variantId: serviceVariant.id,
       })
       .from(booking)
       .innerJoin(guestProfile, eq(guestProfile.id, booking.guestProfileId))
@@ -91,6 +93,8 @@ export class HouseBookingsController {
       guest: { id: b.guestProfileId, alias },
       service: r.service,
       variant: r.variant,
+      service_id: r.serviceId,
+      variant_id: r.variantId,
       resources: res
         .filter((x) => x.bookingId === b.id)
         .map(({ id, name, type }) => ({ id, name, type })),
@@ -99,6 +103,8 @@ export class HouseBookingsController {
       currency: b.currency,
       source: b.source,
       notes: b.notes,
+      version: b.version,
+      created_at: new Date(b.createdAt).toISOString(),
     }));
   }
 
@@ -106,7 +112,7 @@ export class HouseBookingsController {
   @RequireCapability('booking.view')
   @ApiOperation({
     summary: 'Calendar',
-    description: `Bookings starting between \`from\` and \`to\` (at most ${MAX_RANGE_DAYS} days). Guests appear by alias only.`,
+    description: `Bookings starting between \`from\` and \`to\` (at most ${MAX_RANGE_DAYS} days), or every visit of one guest with \`guest_id\`. Guests appear by alias only.`,
   })
   @DocUuidParam('tenantId', 'House id')
   @DocQuery(HouseBookingQuery)
@@ -115,14 +121,25 @@ export class HouseBookingsController {
     @ValidQuery(HouseBookingQuery) q: z.output<typeof HouseBookingQuery>,
     @Req() req: AppRequest,
   ) {
-    const from = new Date(q.from);
-    const to = new Date(q.to);
+    if (q.guest_id && !(q.from && q.to)) {
+      const guestId = q.guest_id;
+      const items = await this.data.inTenant(req, (tx) =>
+        this.load(tx, and(eq(booking.guestProfileId, guestId))),
+      );
+      return { items: items.reverse() };
+    }
+    const from = new Date(q.from ?? '');
+    const to = new Date(q.to ?? '');
     if (to <= from || to.getTime() - from.getTime() > MAX_RANGE_DAYS * 86_400_000)
       throw Errors.invalid(`Choose a range of up to ${MAX_RANGE_DAYS} days.`);
     const items = await this.data.inTenant(req, (tx) =>
       this.load(
         tx,
-        and(gte(booking.startsAt, from.toISOString()), lt(booking.startsAt, to.toISOString())),
+        and(
+          gte(booking.startsAt, from.toISOString()),
+          lt(booking.startsAt, to.toISOString()),
+          q.guest_id ? eq(booking.guestProfileId, q.guest_id) : undefined,
+        ),
       ),
     );
     return { items };

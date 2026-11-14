@@ -107,6 +107,26 @@ describe('roles and capabilities', () => {
     expect(res.body.items[0].first_touch_source).toBe('own_channel');
   });
 
+  it('keeps private notes on a guest, only inside this House', async () => {
+    const list = await h.http
+      .get(`/v1/tenants/${h.ids.tenantA}/guests`)
+      .set(bearer(ownerA))
+      .expect(200);
+    const g = list.body.items[0];
+    expect(g).toMatchObject({ visits: 0, spend_minor: 0, last_visit_at: null, notes: '' });
+    const upd = await h.http
+      .patch(`/v1/tenants/${h.ids.tenantA}/guests/${g.id}`)
+      .set(bearer(ownerA))
+      .send({ notes: 'Prefers a quiet room', tags: ['regular'] })
+      .expect(200);
+    expect(upd.body).toMatchObject({ notes: 'Prefers a quiet room', tags: ['regular'] });
+    await h.http
+      .patch(`/v1/tenants/${h.ids.tenantB}/guests/${g.id}`)
+      .set(bearer(ownerA))
+      .send({ notes: 'x' })
+      .expect(404);
+  });
+
   it('hides staff routes from everyone else (404, not 403)', async () => {
     await h.http.get('/v1/platform/tenants').set(bearer(ownerA)).expect(404);
   });
@@ -164,6 +184,44 @@ describe('idempotency (rule 4)', () => {
       .send({ ...invite, phone: '+254733000002' })
       .expect(422);
     expect(res.body.error.code).toBe('idempotency_key_reused');
+  });
+});
+
+describe('invitations', () => {
+  it('invites by email, and the invitee sees and accepts it', async () => {
+    await h.http
+      .post(`/v1/tenants/${h.ids.tenantA}/members`)
+      .set(bearer(ownerA))
+      .set('Idempotency-Key', 'invite-by-email-0001')
+      .send({ full_name: 'Nobody', role: 'front_desk' })
+      .expect(422);
+    const only = await h.http
+      .post(`/v1/tenants/${h.ids.tenantA}/members`)
+      .set(bearer(ownerA))
+      .set('Idempotency-Key', 'invite-by-email-0002')
+      .send({ full_name: 'Email Only', email: 'email.only@example.com', role: 'front_desk' })
+      .expect(201);
+    expect(only.body.status).toBe('invited');
+
+    const phone = '+254733000099';
+    const inv = await h.http
+      .post(`/v1/tenants/${h.ids.tenantA}/members`)
+      .set(bearer(ownerA))
+      .set('Idempotency-Key', 'invite-by-email-0003')
+      .send({ full_name: 'Wanjiru Desk', email: 'wanjiru@example.com', phone, role: 'front_desk' })
+      .expect(201);
+    const invitee = await signIn(h, phone);
+    const open = await h.http.get('/v1/me/invitations').set(bearer(invitee)).expect(200);
+    expect(open.body).toEqual([
+      { membership_id: inv.body.id, tenant_name: expect.any(String), role: 'front_desk' },
+    ]);
+    const before = await h.http.get('/v1/me/tenants').set(bearer(invitee)).expect(200);
+    expect(before.body).toHaveLength(0);
+    await h.http.post(`/v1/me/memberships/${inv.body.id}/accept`).set(bearer(invitee)).expect(204);
+    const after = await h.http.get('/v1/me/tenants').set(bearer(invitee)).expect(200);
+    expect(after.body.map((t: { tenant_id: string }) => t.tenant_id)).toEqual([h.ids.tenantA]);
+    const none = await h.http.get('/v1/me/invitations').set(bearer(invitee)).expect(200);
+    expect(none.body).toEqual([]);
   });
 });
 

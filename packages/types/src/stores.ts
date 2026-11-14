@@ -395,10 +395,13 @@ export const LocationUpdate = z
   .partial()
   .meta({ id: 'LocationUpdate' });
 
-export const HouseBookingQuery = z.object({
-  from: z.iso.datetime({ offset: true }),
-  to: z.iso.datetime({ offset: true }),
-});
+export const HouseBookingQuery = z
+  .object({
+    from: z.iso.datetime({ offset: true }).optional(),
+    to: z.iso.datetime({ offset: true }).optional(),
+    guest_id: Uuid.optional().meta({ description: "One guest's visits (no date range needed)" }),
+  })
+  .refine((q) => q.guest_id || (q.from && q.to), 'Send from and to, or a guest_id');
 
 export const HouseBooking = z
   .object({
@@ -410,12 +413,16 @@ export const HouseBooking = z
     guest: z.object({ id: Uuid, alias: z.string().nullable() }),
     service: z.string(),
     variant: z.string(),
+    service_id: Uuid,
+    variant_id: Uuid,
     resources: z.array(z.object({ id: Uuid, name: z.string(), type: z.string() })),
     total_minor: z.number().int(),
     paid_minor: z.number().int(),
     currency: z.string(),
     source: z.string(),
     notes: z.string().nullable(),
+    version: z.number().int().describe('Send this back when moving the booking on'),
+    created_at: z.string(),
   })
   .meta({ id: 'HouseBooking' });
 

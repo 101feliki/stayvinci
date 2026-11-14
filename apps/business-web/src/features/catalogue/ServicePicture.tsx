@@ -3,7 +3,7 @@ import { ImagePlus, Images, Shapes, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, SERVICE_ICON_SET, ServiceVisual, Segmented, cn } from '@stayvinci/ui';
 import { basePalette, resizeImage } from '@stayvinci/demo-data/design';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useTenantQuery } from '../../lib/query';
 
 /** Curated photos Houses can use while they don't have their own (template library). */

@@ -24,12 +24,12 @@ import {
   Switch,
   cn,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { ContentItem } from '../../mock/types';
 import { useSession } from '../../app/session';
 import { addDaysKey, dateTime, money, zonedToUtc } from '../../lib/format';
 import { useAction } from '../../lib/query';
-import { todayKey } from '../../mock/api';
+import { todayKey } from '../../lib/api';
 
 /** Live classes, demos and Q&As for guests: scheduled, live now, or ended. */
 export function LiveSessionsPanel({

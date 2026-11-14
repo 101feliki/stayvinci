@@ -20,7 +20,7 @@ import {
   resetHints,
 } from '@stayvinci/ui';
 import { toast } from 'sonner';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { SocialAccounts } from './SocialAccounts';
 import type { Location, Tenant } from '../../mock/types';
 import { useCan, useSession } from '../../app/session';

@@ -15,7 +15,7 @@ import {
   Th,
   Tr,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { SAMPLE_FEE_RULE, SAMPLE_PLAN } from '../../mock/seed';
 import { useSession } from '../../app/session';
 import { ErrorState, PageSkeleton } from '../../components/common';

@@ -14,7 +14,7 @@ import {
   Th,
   Tr,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { Resource } from '../../mock/types';
 import { useSession } from '../../app/session';
 import { ErrorState, PageSkeleton } from '../../components/common';

@@ -2,7 +2,7 @@ import { Controller, Get, HttpCode, Inject, Patch, Post, Req } from '@nestjs/com
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { and, eq, sql } from 'drizzle-orm';
 import { membership, tenant, user } from '@stayvinci/db';
-import { Me, MeUpdate, MyTenant, effectiveCapabilities } from '@stayvinci/types';
+import { Me, MeUpdate, MyInvitation, MyTenant, effectiveCapabilities } from '@stayvinci/types';
 import { z } from 'zod';
 import { Errors, type AppRequest } from '../../common/http.js';
 import {
@@ -117,6 +117,26 @@ export class MeController {
       role: m.role,
       capabilities: [...effectiveCapabilities(m.role, m.capsAdded, m.capsRemoved)],
     }));
+  }
+
+  @Get('invitations')
+  @ApiOperation({
+    summary: 'Invitations waiting for me',
+    description: 'Teams that invited me. Accept one to start working there.',
+  })
+  @DocResponse(200, z.array(MyInvitation), 'Open invitations', [401])
+  async invitations(@Req() req: AppRequest): Promise<z.output<typeof MyInvitation>[]> {
+    if (!req.auth) throw Errors.unauthorized();
+    const rows = await this.data.asUser(req.auth, (tx) =>
+      tx
+        .select({ id: membership.id, role: membership.role, name: tenant.name })
+        .from(membership)
+        .innerJoin(tenant, eq(tenant.id, membership.tenantId))
+        .where(
+          and(eq(membership.userId, req.auth?.userId ?? ''), eq(membership.status, 'invited')),
+        ),
+    );
+    return rows.map((r) => ({ membership_id: r.id, tenant_name: r.name, role: r.role }));
   }
 
   @Post('memberships/:membershipId/accept')

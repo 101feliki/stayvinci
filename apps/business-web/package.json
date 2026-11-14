@@ -2,7 +2,7 @@
   "name": "@stayvinci/business-web",
   "version": "0.0.0",
   "private": true,
-  "description": "House/Atelier business web app (React + Vite). Runs on mock data until the API lands.",
+  "description": "House/Atelier business web app (React + Vite), on the Stayvinci API.",
   "type": "module",
   "scripts": {
     "dev": "vite",

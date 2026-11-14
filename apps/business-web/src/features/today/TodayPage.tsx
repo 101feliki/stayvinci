@@ -23,7 +23,7 @@ import {
   StatTile,
   cn,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { Booking } from '../../mock/types';
 import { useCan, useSession } from '../../app/session';
 import { useBookingDrawer } from '../../app/ui';

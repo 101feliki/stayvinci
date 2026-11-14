@@ -1,11 +1,12 @@
 import { Controller, Get, HttpCode, Inject, Patch, Post, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
-import { auditLog, guestProfile, membership, tenant, user } from '@stayvinci/db';
+import { auditLog, booking, guestProfile, membership, tenant, user } from '@stayvinci/db';
 import {
   AuditEntry,
   CursorQuery,
   Guest,
+  GuestUpdate,
   Member,
   MemberInvite,
   MemberUpdate,
@@ -51,6 +52,42 @@ const actor = (req: AppRequest) => ({
   actorLabel: 'member',
   ip: req.ip ?? null,
   requestId: req.requestId,
+});
+
+/** Guest columns plus completed-visit totals (one row per guest, no extra queries). */
+const guestColumns = {
+  g: guestProfile,
+  name: user.fullName,
+  phone: user.phoneE164,
+  email: user.email,
+  visits: sql<number>`(select count(*)::int from ${booking} b where b.guest_profile_id = ${guestProfile.id} and b.state = 'completed')`,
+  spend: sql<number>`(select coalesce(sum(b.total_minor), 0)::bigint from ${booking} b where b.guest_profile_id = ${guestProfile.id} and b.state = 'completed')`,
+  lastVisit: sql<
+    string | null
+  >`(select max(b.starts_at) from ${booking} b where b.guest_profile_id = ${guestProfile.id} and b.state = 'completed')`,
+};
+type GuestRow = {
+  g: typeof guestProfile.$inferSelect;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  visits: number;
+  spend: number | string;
+  lastVisit: string | Date | null;
+};
+const guestOut = (r: GuestRow, canSeeContact: boolean): z.output<typeof Guest> => ({
+  id: r.g.id,
+  display_name: r.g.alias ?? r.name ?? 'Guest',
+  first_touch_source: r.g.firstTouchSource,
+  tags: r.g.tags,
+  visits: Number(r.visits),
+  spend_minor: Number(r.spend),
+  last_visit_at: r.lastVisit ? new Date(r.lastVisit).toISOString() : null,
+  joined_at: new Date(r.g.firstTouchAt).toISOString(),
+  notes: r.g.notes ?? '',
+  // Field-level omission (CLAUDE.md rule 5): absent, not blanked.
+  ...(canSeeContact && r.phone ? { phone: r.phone } : {}),
+  ...(canSeeContact && r.email ? { email: r.email } : {}),
 });
 
 /**
@@ -166,7 +203,7 @@ export class TenantsController {
   @ApiOperation({
     summary: 'Invite a team member',
     description:
-      'Invites by phone number. They accept after signing in. Owners can only be added by Stayvinci.',
+      'Invites by email or phone number. They accept after signing in. Owners can only be added by Stayvinci.',
   })
   @DocUuidParam('tenantId', 'House id')
   @DocBody(MemberInvite)
@@ -177,13 +214,22 @@ export class TenantsController {
   ) {
     // Find or create the person (identity role), then add them to this House (tenant role).
     const person = await this.data.identity(async (tx) => {
-      const [existing] = await tx.select().from(user).where(eq(user.phoneE164, body.phone));
+      const [existing] = await tx
+        .select()
+        .from(user)
+        .where(
+          or(
+            body.phone ? eq(user.phoneE164, body.phone) : undefined,
+            body.email ? eq(user.email, body.email) : undefined,
+          ),
+        )
+        .limit(1);
       if (existing) return existing;
       const [created] = await tx
         .insert(user)
         .values({
-          phoneE164: body.phone,
           fullName: body.full_name,
+          ...(body.phone ? { phoneE164: body.phone } : {}),
           ...(body.email ? { email: body.email } : {}),
         })
         .onConflictDoNothing()
@@ -337,7 +383,7 @@ export class TenantsController {
     const cursor = decodeCursor(q.cursor);
     const rows = await this.data.inTenant(req, (tx) =>
       tx
-        .select({ g: guestProfile, name: user.fullName, phone: user.phoneE164, email: user.email })
+        .select(guestColumns)
         .from(guestProfile)
         .innerJoin(user, eq(user.id, guestProfile.userId))
         .where(
@@ -357,18 +403,54 @@ export class TenantsController {
     const page = rows.slice(0, q.limit);
     const last = page[page.length - 1];
     return {
-      items: page.map(({ g, name, phone, email }) => ({
-        id: g.id,
-        display_name: g.alias ?? name ?? 'Guest',
-        first_touch_source: g.firstTouchSource,
-        tags: g.tags,
-        // Field-level omission (CLAUDE.md rule 5): absent, not blanked.
-        ...(canSeeContact && phone ? { phone } : {}),
-        ...(canSeeContact && email ? { email } : {}),
-      })),
+      items: page.map((r) => guestOut(r, canSeeContact)),
       next_cursor:
         rows.length > q.limit && last ? encodeCursor({ t: last.g.createdAt, id: last.g.id }) : null,
     };
+  }
+
+  @Patch('guests/:guestId')
+  @RequireCapability('guest.view')
+  @ApiOperation({
+    summary: 'Update notes or tags for a guest',
+    description: 'Private to the team. The guest never sees notes or tags.',
+  })
+  @DocUuidParam('tenantId', 'House id')
+  @DocUuidParam('guestId', 'Guest id')
+  @DocBody(GuestUpdate)
+  @DocResponse(200, Guest, 'Updated', [401, 403, 404, 422])
+  async updateGuest(
+    @UuidPath('guestId') guestId: string,
+    @ValidBody(GuestUpdate) body: z.output<typeof GuestUpdate>,
+    @Req() req: AppRequest,
+  ) {
+    const canSeeContact = req.tenant?.capabilities.has('guest.contact.view') ?? false;
+    return this.data.inTenant(req, async (tx) => {
+      const [upd] = await tx
+        .update(guestProfile)
+        .set({
+          ...(body.notes !== undefined && { notes: body.notes }),
+          ...(body.tags !== undefined && { tags: body.tags }),
+          updatedAt: sql`now()` as never,
+        })
+        .where(and(eq(guestProfile.id, guestId), eq(guestProfile.tenantId, req.tenant?.id ?? '')))
+        .returning({ id: guestProfile.id });
+      if (!upd) throw Errors.notFound('Guest');
+      await audit(tx, {
+        ...actor(req),
+        action: 'guest.updated',
+        targetType: 'guest_profile',
+        targetId: guestId,
+        after: { fields: Object.keys(body) },
+      });
+      const [row] = await tx
+        .select(guestColumns)
+        .from(guestProfile)
+        .innerJoin(user, eq(user.id, guestProfile.userId))
+        .where(eq(guestProfile.id, guestId));
+      if (!row) throw Errors.notFound('Guest');
+      return guestOut(row, canSeeContact);
+    });
   }
 
   /* ---------- Audit ---------- */

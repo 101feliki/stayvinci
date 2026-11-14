@@ -15,7 +15,7 @@ import {
   Switch,
   type SocialNetwork,
 } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useSession } from '../../app/session';
 import { relative } from '../../lib/format';
 import { useAction, useTenantQuery } from '../../lib/query';

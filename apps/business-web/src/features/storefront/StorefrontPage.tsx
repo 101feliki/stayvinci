@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import { ExternalLink, History, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { Badge, Button, Card, PageHeader, Segmented, Tabs, cn } from '@stayvinci/ui';
 import { basePalette } from '@stayvinci/demo-data/design';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { SectionKind, Storefront } from '../../mock/types';
 import { useSession } from '../../app/session';
 import { ErrorState, PageSkeleton } from '../../components/common';

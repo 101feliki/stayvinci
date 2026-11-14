@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { SessionInfo } from '../mock/api';
+import type { SessionInfo } from '../lib/api';
 import type { Capability } from '../mock/types';
 
 export type SignedInSession = Extract<SessionInfo, { signedIn: true }>;

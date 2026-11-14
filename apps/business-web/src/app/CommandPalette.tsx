@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Kbd, cn } from '@stayvinci/ui';
-import { api } from '../mock/api';
+import { api } from '../lib/api';
 import type { Capability } from '../mock/types';
 import { dateTime, money } from '../lib/format';
 import { NAV } from './nav';

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { MessageSquareQuote } from 'lucide-react';
 import { Button, Card, CardHeader, Input, PageHeader, Select } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import type { Policies } from '../../mock/types';
 import { ErrorState, PageSkeleton } from '../../components/common';
 import { useAction, useTenantQuery } from '../../lib/query';

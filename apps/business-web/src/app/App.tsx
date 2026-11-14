@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Lock } from 'lucide-react';
 import { EmptyState, LogoMark, Skeleton } from '@stayvinci/ui';
-import { api } from '../mock/api';
+import { api } from '../lib/api';
 import type { Capability } from '../mock/types';
 import { AppShell } from './AppShell';
 import { SessionProvider, useCan, type SignedInSession } from './session';

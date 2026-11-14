@@ -252,7 +252,7 @@ export class StoresService {
         about: row.s.about,
         amenities: row.s.amenities,
         gallery: row.s.gallery,
-        design: row.s.design,
+        design: publicDesign(row.s.design),
         socials: row.s.socials,
         policies: row.s.policies,
         chat_enabled: row.s.chatEnabled,
@@ -663,6 +663,11 @@ const storefrontPublicCols = {
   socials: storefront.socials,
   policies: storefront.policies,
   chatEnabled: storefront.chatEnabled,
+};
+/** The House's unpublished draft and version history stay in the business app. */
+const publicDesign = (d: Record<string, unknown>) => {
+  const { draft: _draft, versions: _versions, ...live } = d;
+  return live;
 };
 type StorefrontPublic = {
   [K in keyof typeof storefrontPublicCols]: (typeof storefront.$inferSelect)[K];

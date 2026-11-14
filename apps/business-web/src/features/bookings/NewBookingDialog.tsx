@@ -12,7 +12,7 @@ import {
   Textarea,
   cn,
 } from '@stayvinci/ui';
-import { api, todayKey, addDaysKey } from '../../mock/api';
+import { api, todayKey, addDaysKey } from '../../lib/api';
 import type { Booking } from '../../mock/types';
 import { useSession } from '../../app/session';
 import { useBookingDrawer, useUi } from '../../app/ui';

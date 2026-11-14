@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Clock, Inbox, X } from 'lucide-react';
 import { Avatar, Badge, Button, Card, EmptyState, PageHeader } from '@stayvinci/ui';
-import { api } from '../../mock/api';
+import { api } from '../../lib/api';
 import { useCan, useSession } from '../../app/session';
 import { useBookingDrawer } from '../../app/ui';
 import { ErrorState, PageSkeleton } from '../../components/common';
