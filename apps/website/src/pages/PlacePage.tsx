@@ -1,21 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
+import { cn } from '@stayvinci/ui';
 import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Check,
   Clock,
-  ExternalLink,
   MapPin,
-  Monitor,
-  Smartphone,
   Sparkles,
   Star,
   Users,
 } from 'lucide-react';
-import { cn } from '@stayvinci/ui';
 import {
   DAY_LABELS,
   KIND_LABEL,
@@ -27,13 +24,10 @@ import {
   storeUrl,
   type StoreDetail,
 } from '../api';
-import { BrowserFrame, PhoneFrame } from '../components/DeviceFrame';
-import { SectionHead } from './HomePage';
 
 /**
- * A place's own page on the Stayvinci website: its profile, menu, rooms and hours, beside
- * its live store running in the app, so anyone can see what the business looks like on
- * Stayvinci.
+ * A place's own page on the Stayvinci website: its profile, menu, rooms, hours and reviews,
+ * with a booking card that opens its store in the app.
  */
 export function PlacePage() {
   const { handle = '' } = useParams();
@@ -81,24 +75,9 @@ export function PlacePage() {
           <PlaceReviews s={s} />
         </div>
         <aside className="hidden lg:block">
-          <div className="sticky top-24 flex flex-col items-center">
-            <div className="mb-4 text-center">
-              <div className="text-[11px] font-semibold tracking-[0.22em] text-ink-subtle uppercase">
-                Live in the app
-              </div>
-              <p className="mt-1 text-sm text-ink-muted">This is their real store. Try it.</p>
-            </div>
-            <PhoneFrame src={storeUrl(s.handle)} title={`${s.name} in the Stayvinci app`} />
-            <a
-              href={storeUrl(s.handle)}
-              className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-azure-700 dark:text-azure-400"
-            >
-              Open full screen <ExternalLink className="size-4" />
-            </a>
-          </div>
+          <BookCard s={s} />
         </aside>
       </div>
-      <Preview s={s} />
       <MorePlaces s={s} />
     </main>
   );
@@ -163,14 +142,67 @@ function PlaceHero({ s }: { s: StoreDetail }) {
             Book in the app <ArrowRight className="size-4" />
           </a>
           <a
-            href="#preview"
+            href="#menu"
             className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
           >
-            See their store
+            See the menu
           </a>
         </div>
       </div>
     </section>
+  );
+}
+
+/** Sticky card beside the profile: price, place, today's hours, and the way in. */
+function BookCard({ s }: { s: StoreDetail }) {
+  const place = [s.area, s.city].filter(Boolean).join(', ');
+  const loc = s.locations[0];
+  const key = (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date().getDay()];
+  const today = key && loc ? (loc.hours[key] ?? []) : [];
+  return (
+    <div className="sticky top-24 rounded-2xl border border-line bg-surface p-6 shadow-card">
+      <div className="text-[11px] font-semibold tracking-[0.22em] text-ink-subtle uppercase">
+        Book a visit
+      </div>
+      <div className="mt-2 text-xl font-semibold tracking-tight">{s.name}</div>
+      {s.from_price_minor !== null ? (
+        <div className="mt-1 text-sm text-ink-muted">
+          From{' '}
+          <span className="font-semibold text-ink">{money(s.from_price_minor, s.currency)}</span>
+        </div>
+      ) : null}
+      <ul className="mt-5 space-y-2.5 text-sm text-ink-muted">
+        {place ? (
+          <li className="flex items-center gap-2">
+            <MapPin className="size-4 shrink-0 text-ink-subtle" /> {place}
+          </li>
+        ) : null}
+        {loc ? (
+          <li className="flex items-center gap-2">
+            <Clock className="size-4 shrink-0 text-ink-subtle" />
+            {today.length
+              ? `Open today ${today.map(([o, c]) => `${o}–${c}`).join(', ')}`
+              : 'Closed today'}
+          </li>
+        ) : null}
+        {s.rating.average !== null ? (
+          <li className="flex items-center gap-2">
+            <Star className="size-4 shrink-0 fill-gold-400 text-gold-400" />
+            {s.rating.average.toFixed(1)} from {s.rating.count} verified visit
+            {s.rating.count === 1 ? '' : 's'}
+          </li>
+        ) : null}
+      </ul>
+      <a
+        href={storeUrl(s.handle)}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-obsidian-900 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-obsidian-800 dark:bg-white dark:text-obsidian-900"
+      >
+        Book in the app <ArrowRight className="size-4" />
+      </a>
+      <p className="mt-3 text-center text-xs text-ink-subtle">
+        Private and discreet. Reminders never name the place.
+      </p>
+    </div>
   );
 }
 
@@ -224,7 +256,7 @@ function MenuSection({ s }: { s: StoreDetail }) {
     { id: '_', name: 'More', services: s.services.filter((x) => !x.category_id) },
   ].filter((g) => g.services.length);
   return (
-    <section>
+    <section id="menu" className="scroll-mt-24">
       <H>{s.vertical === 'short_stay' ? 'Stays and rates' : 'Menu'}</H>
       <p className="mt-2 text-sm text-ink-muted">
         Prices as shown in their store. Book any of these in the app.
@@ -450,53 +482,6 @@ function PlaceReviews({ s }: { s: StoreDetail }) {
           No reviews yet. Reviews on Stayvinci come only from guests after a completed visit.
         </p>
       )}
-    </section>
-  );
-}
-
-function Preview({ s }: { s: StoreDetail }) {
-  const [mode, setMode] = useState<'phone' | 'desktop'>('desktop');
-  return (
-    <section id="preview" className="scroll-mt-20 bg-obsidian-sheen py-20 text-white md:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <SectionHead
-            dark
-            eyebrow="Their store on Stayvinci"
-            title={`${s.name}, as guests see it`}
-            lead="This is the live store from the app, on a phone or a computer. Everything works: browse the menu, pick a time, book."
-          />
-          <div className="mb-10 flex shrink-0 rounded-full bg-white/10 p-1 md:mb-14" role="tablist">
-            {(
-              [
-                ['phone', 'Phone', Smartphone],
-                ['desktop', 'Computer', Monitor],
-              ] as const
-            ).map(([k, label, Icon]) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                aria-selected={mode === k}
-                onClick={() => setMode(k)}
-                className={cn(
-                  'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
-                  mode === k ? 'bg-white text-obsidian-900' : 'text-white/75 hover:text-white',
-                )}
-              >
-                <Icon className="size-4" /> {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {mode === 'phone' ? (
-          <div className="flex justify-center">
-            <PhoneFrame src={storeUrl(s.handle)} title={`${s.name} in the Stayvinci app`} />
-          </div>
-        ) : (
-          <BrowserFrame src={storeUrl(s.handle)} title={`${s.name} on the Stayvinci web app`} />
-        )}
-      </div>
     </section>
   );
 }
