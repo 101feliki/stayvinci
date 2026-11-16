@@ -22,9 +22,15 @@ const Env = z.object({
   DOCS_ENABLED: bool.optional(),
   DOCS_USER: z.string().optional(),
   DOCS_PASSWORD: z.string().optional(),
-  // "smtp" sends through SMTP_*; "console" prints emails (with their links) to the API log, development only.
-  MAIL_TRANSPORT: z.enum(['smtp', 'brevo', 'console']).default('smtp'),
+  // "smtp" sends through SMTP_*; "brevo" and "emailjs" send over HTTPS (hosts that block SMTP);
+  // "console" prints emails (with their links) to the API log, development only.
+  MAIL_TRANSPORT: z.enum(['smtp', 'brevo', 'emailjs', 'console']).default('smtp'),
   BREVO_API_KEY: z.string().optional(),
+  // EmailJS: sends through the Gmail account connected in EmailJS (free, no domain needed).
+  EMAILJS_SERVICE_ID: z.string().optional(),
+  EMAILJS_TEMPLATE_ID: z.string().optional(),
+  EMAILJS_PUBLIC_KEY: z.string().optional(),
+  EMAILJS_PRIVATE_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('127.0.0.1'),
   SMTP_PORT: z.coerce.number().int().default(1025),
   SMTP_SECURE: bool.default(false),
@@ -51,8 +57,9 @@ export interface Config {
   accessTtl: number;
   refreshTtlDays: number;
   docs: { enabled: boolean; user: string | null; password: string | null };
-  mailTransport: 'smtp' | 'brevo' | 'console';
+  mailTransport: 'smtp' | 'brevo' | 'emailjs' | 'console';
   brevoApiKey: string | null;
+  emailjs: { serviceId: string; templateId: string; publicKey: string; privateKey: string } | null;
   smtp: {
     host: string;
     port: number;
@@ -109,6 +116,19 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     throw new Error('MAIL_TRANSPORT=console prints sign-in links; use smtp in production.');
   if (e.MAIL_TRANSPORT === 'brevo' && !e.BREVO_API_KEY)
     throw new Error('MAIL_TRANSPORT=brevo needs BREVO_API_KEY.');
+  const ej =
+    e.EMAILJS_SERVICE_ID && e.EMAILJS_TEMPLATE_ID && e.EMAILJS_PUBLIC_KEY && e.EMAILJS_PRIVATE_KEY
+      ? {
+          serviceId: e.EMAILJS_SERVICE_ID,
+          templateId: e.EMAILJS_TEMPLATE_ID,
+          publicKey: e.EMAILJS_PUBLIC_KEY,
+          privateKey: e.EMAILJS_PRIVATE_KEY,
+        }
+      : null;
+  if (e.MAIL_TRANSPORT === 'emailjs' && !ej)
+    throw new Error(
+      'MAIL_TRANSPORT=emailjs needs EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY and EMAILJS_PRIVATE_KEY.',
+    );
   if (prod && (e.SMS_PROVIDER === 'console' || e.SMS_PROVIDER === 'memory'))
     throw new Error(
       'SMS_PROVIDER must be "off" or a real provider in production (console prints codes).',
@@ -148,6 +168,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     },
     mailTransport: e.MAIL_TRANSPORT,
     brevoApiKey: e.BREVO_API_KEY ?? null,
+    emailjs: ej,
     smtp: {
       host: e.SMTP_HOST,
       port: e.SMTP_PORT,

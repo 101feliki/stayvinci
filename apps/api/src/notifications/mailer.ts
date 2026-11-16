@@ -87,6 +87,46 @@ export class BrevoMailer implements Mailer {
 }
 
 /**
+ * EmailJS REST API (MAIL_TRANSPORT=emailjs). EmailJS sends through the Gmail account connected
+ * to its service, so mail really comes from Gmail and passes Gmail's DMARC checks: free, and no
+ * domain needed. Called only from the server with the private key (sign-in links are never
+ * built in a browser). The EmailJS template uses to_email, from_name, subject, html_content
+ * (inserted unescaped, with triple braces) and text_content.
+ * In EmailJS: Account, Security, allow API access from non-browser applications.
+ */
+export class EmailJsMailer implements Mailer {
+  constructor(
+    private readonly config: Config,
+    private readonly http: typeof fetch = fetch,
+  ) {}
+
+  async send(m: MailMessage): Promise<void> {
+    const ej = this.config.emailjs;
+    if (!ej) throw new Error('EmailJS is not configured');
+    const res = await this.http('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        service_id: ej.serviceId,
+        template_id: ej.templateId,
+        user_id: ej.publicKey,
+        accessToken: ej.privateKey,
+        template_params: {
+          to_email: m.to,
+          from_name: parseSender(this.config.smtp.from).name ?? 'Stayvinci',
+          subject: m.subject,
+          html_content: m.html,
+          text_content: m.text,
+        },
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    // Never log the body we sent (it holds the sign-in link) or the recipient.
+    if (!res.ok) throw new Error(`EmailJS refused the email (HTTP ${res.status})`);
+  }
+}
+
+/**
  * Development only (MAIL_TRANSPORT=console): prints the plain-text email, including its
  * sign-in link, to the API log. Config refuses this in production.
  */
