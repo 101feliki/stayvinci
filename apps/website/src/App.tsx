@@ -7,23 +7,63 @@ import {
   RouterProvider,
   ScrollRestoration,
 } from 'react-router';
-import { Menu, X } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
 import { Logo, cn } from '@stayvinci/ui';
 import { BUSINESS_APP_URL, GUEST_APP_URL } from './api';
+import { SearchOverlay } from './components/SearchOverlay';
+import { ExplorePage } from './pages/ExplorePage';
 import { HomePage } from './pages/HomePage';
+import { GuidePage, JournalPage } from './pages/JournalPage';
 import { PlacePage } from './pages/PlacePage';
+import { StandardPage } from './pages/StandardPage';
 
 const NAV = [
-  { to: '/#solves', label: 'Why Stayvinci' },
-  { to: '/#spas', label: 'Our spas' },
-  { to: '/#ateliers', label: 'Ateliers' },
-  { to: '/#stays', label: 'Stays' },
+  { to: '/explore', label: 'Explore' },
+  { to: '/explore?kind=spa', label: 'Spas' },
+  { to: '/explore?kind=atelier', label: 'Ateliers' },
+  { to: '/explore?kind=short_stay', label: 'Stays' },
+  { to: '/journal', label: 'Journal' },
   { to: '/#business', label: 'For businesses' },
 ];
+
+/** In-page anchors (/#business) need a plain link so the browser scrolls to them. */
+function NavItem({
+  to,
+  className,
+  onClick,
+  children,
+}: {
+  to: string;
+  className: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  return to.includes('#') ? (
+    <a href={to} className={className} onClick={onClick}>
+      {children}
+    </a>
+  ) : (
+    <Link to={to} className={className} onClick={onClick}>
+      {children}
+    </Link>
+  );
+}
 
 function Shell() {
   const [open, setOpen] = useState(false);
   const [solid, setSolid] = useState(false);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const typing = (e.target as HTMLElement | null)?.closest('input, textarea');
+      if ((e.key === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing)) {
+        e.preventDefault();
+        setSearching(true);
+      }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, []);
   useEffect(() => {
     const on = () => setSolid(window.scrollY > 24);
     on();
@@ -44,24 +84,36 @@ function Shell() {
           </Link>
           <nav className="ml-auto hidden items-center gap-1 lg:flex" aria-label="Main">
             {NAV.map((n) => (
-              <a
+              <NavItem
                 key={n.to}
-                href={n.to}
+                to={n.to}
                 className="px-3 py-2 text-[12px] font-semibold tracking-[0.16em] text-white/70 uppercase transition-colors hover:text-white"
               >
                 {n.label}
-              </a>
+              </NavItem>
             ))}
           </nav>
+          <button
+            type="button"
+            onClick={() => setSearching(true)}
+            aria-label="Search"
+            className="ml-auto flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-white/80 transition hover:border-gold-300/60 hover:text-white lg:ml-2"
+          >
+            <Search className="size-4" />
+            <span className="hidden text-[11px] tracking-[0.16em] uppercase xl:inline">Search</span>
+            <kbd className="hidden rounded border border-white/20 px-1.5 text-[10px] text-white/50 xl:inline">
+              Ctrl K
+            </kbd>
+          </button>
           <a
             href={`${GUEST_APP_URL}/?install=1`}
-            className="ml-auto hidden rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-obsidian-900 transition hover:bg-ivory sm:inline-flex lg:ml-2"
+            className="hidden rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-obsidian-900 transition hover:bg-ivory sm:inline-flex"
           >
             Get the app
           </a>
           <button
             type="button"
-            className="ml-auto rounded-full p-2 hover:bg-white/10 sm:ml-0 lg:hidden"
+            className="rounded-full p-2 hover:bg-white/10 lg:hidden"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
@@ -72,14 +124,14 @@ function Shell() {
         {open ? (
           <nav className="border-t border-white/10 px-4 pb-6 lg:hidden" aria-label="Main">
             {NAV.map((n) => (
-              <a
+              <NavItem
                 key={n.to}
-                href={n.to}
+                to={n.to}
                 onClick={() => setOpen(false)}
                 className="block py-3 text-base font-medium text-white/85"
               >
                 {n.label}
-              </a>
+              </NavItem>
             ))}
             <a
               href={`${GUEST_APP_URL}/?install=1`}
@@ -90,6 +142,7 @@ function Shell() {
           </nav>
         ) : null}
       </header>
+      <SearchOverlay open={searching} onClose={() => setSearching(false)} />
       <Outlet />
       <Footer />
       <ScrollRestoration />
@@ -124,9 +177,19 @@ function Footer() {
               </a>
             </li>
             <li>
-              <a href="/#spas" className="hover:text-white">
-                Our spas
-              </a>
+              <Link to="/explore" className="hover:text-white">
+                Explore every place
+              </Link>
+            </li>
+            <li>
+              <Link to="/journal" className="hover:text-white">
+                The Journal
+              </Link>
+            </li>
+            <li>
+              <Link to="/standard" className="hover:text-white">
+                Our standard
+              </Link>
             </li>
           </ul>
         </div>
@@ -166,6 +229,10 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'places/:handle', element: <PlacePage /> },
+      { path: 'explore', element: <ExplorePage /> },
+      { path: 'journal', element: <JournalPage /> },
+      { path: 'journal/:slug', element: <GuidePage /> },
+      { path: 'standard', element: <StandardPage /> },
       { path: '*', element: <HomePage /> },
     ],
   },

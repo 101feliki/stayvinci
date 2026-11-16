@@ -23,6 +23,20 @@
   --color-obsidian-700: #242428;
   --color-obsidian-600: #34343a;
 
+  /* Noir: warm near-black for editorial surfaces (atlas-style sections and cards) */
+  --color-noir-950: #0b0a09;
+  --color-noir-900: #110f0d;
+  --color-noir-800: #181512;
+  --color-noir-700: #221e1a;
+  --color-noir-muted: #958c7e;
+  --color-noir-line: rgb(241 235 223 / 0.08);
+
+  /* Wine: the slim red reflection on the right edge of cards */
+  --color-wine-300: #e07a86;
+  --color-wine-400: #c94b5a;
+  --color-wine-500: #a8303f;
+  --color-wine-700: #6e1a26;
+
   /* Emerald (brand #092720) */
   --color-emerald-50: #eef5f2;
   --color-emerald-100: #d5e7e0;
@@ -79,12 +93,15 @@
   --radius-xl: 0.875rem;
   --radius-2xl: 1.125rem;
 
-  /* Cards carry a slim gold line on the left edge (inset shadow follows the corner radius). */
+  /* Cards carry a slim gold line on the left edge and a slim red reflection on the right
+     (inset shadows follow the corner radius). */
   --shadow-card:
-    inset 2px 0 0 var(--color-gold-400), 0 1px 2px rgb(28 28 30 / 0.04),
+    inset 2px 0 0 var(--color-gold-400), inset -1.5px 0 0 rgb(201 75 90 / 0.6),
+    inset -22px 0 24px -22px rgb(201 75 90 / 0.4), 0 1px 2px rgb(28 28 30 / 0.04),
     0 1px 3px rgb(28 28 30 / 0.06);
   --shadow-card-hover:
-    inset 2px 0 0 var(--color-gold-400), 0 12px 32px -8px rgb(11 38 32 / 0.25),
+    inset 2px 0 0 var(--color-gold-400), inset -1.5px 0 0 rgb(201 75 90 / 0.85),
+    inset -22px 0 24px -22px rgb(201 75 90 / 0.55), 0 12px 32px -8px rgb(11 38 32 / 0.25),
     0 2px 6px rgb(11 38 32 / 0.08);
   --shadow-pop: 0 12px 32px -8px rgb(11 38 32 / 0.25), 0 2px 6px rgb(11 38 32 / 0.08);
 
@@ -196,8 +213,12 @@
     --color-amber-800: #fcd9a0;
     --color-red-700: #f19a9a;
     --color-red-800: #f6b5b5;
-    --shadow-card: inset 2px 0 0 var(--color-gold-400), 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow-card-hover: inset 2px 0 0 var(--color-gold-400), 0 12px 32px -8px rgb(0 0 0 / 0.6);
+    --shadow-card:
+      inset 2px 0 0 var(--color-gold-400), inset -1.5px 0 0 rgb(201 75 90 / 0.6),
+      inset -22px 0 24px -22px rgb(201 75 90 / 0.4), 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-card-hover:
+      inset 2px 0 0 var(--color-gold-400), inset -1.5px 0 0 rgb(201 75 90 / 0.85),
+      inset -22px 0 24px -22px rgb(201 75 90 / 0.55), 0 12px 32px -8px rgb(0 0 0 / 0.6);
     --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.4);
   }
   @media (prefers-reduced-motion: reduce) {
@@ -248,11 +269,18 @@
 /* For cards and banners: pure brand colour with soft depth and no gold. */
 @utility bg-emerald-card {
   background-color: var(--color-emerald-900);
-  background-image: radial-gradient(
-    120% 100% at 0% 0%,
-    rgb(255 255 255 / 0.06) 0%,
-    transparent 55%
-  );
+  background-image:
+    linear-gradient(270deg, rgb(201 75 90 / 0.6) 0, rgb(201 75 90 / 0.6) 1.5px, transparent 1.5px),
+    linear-gradient(270deg, rgb(201 75 90 / 0.14) 0%, transparent 18%),
+    radial-gradient(120% 100% at 0% 0%, rgb(255 255 255 / 0.06) 0%, transparent 55%);
+}
+
+/* Warm near-black editorial surface with a faint gold glow (atlas-style sections). */
+@utility bg-noir-sheen {
+  background-color: var(--color-noir-950);
+  background-image:
+    radial-gradient(80% 60% at 0% 0%, rgb(198 168 111 / 0.08) 0%, transparent 60%),
+    radial-gradient(60% 50% at 100% 100%, rgb(201 75 90 / 0.06) 0%, transparent 60%);
 }
 
 /* Obsidian surface for the guest app: deep black with a quiet sheen of light. */

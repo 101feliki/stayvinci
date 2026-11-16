@@ -1,5 +1,6 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import {
   ArrowRight,
   BadgeCheck,
@@ -13,26 +14,18 @@ import {
   MessageSquareQuote,
   Palette,
   RefreshCcw,
+  Search,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Star,
   Users,
   Wallet,
 } from 'lucide-react';
 import { cn } from '@stayvinci/ui';
-import {
-  BUSINESS_APP_URL,
-  GUEST_APP_URL,
-  KIND_LABEL,
-  media,
-  money,
-  store,
-  stores,
-  storeUrl,
-  type StoreCard,
-} from '../api';
-import { PhoneFrame } from '../components/DeviceFrame';
+import { BUSINESS_APP_URL, GUEST_APP_URL, media, store, stores, type StoreCard } from '../api';
+import { AtlasCard } from '../components/AtlasCard';
+import { CATEGORIES, JOURNAL, SEASON, SELECTION, areasOf } from '../editorial';
+import { GuideCard } from './JournalPage';
 
 export function HomePage() {
   const all = useQuery({ queryKey: ['stores'], queryFn: () => stores() });
@@ -40,11 +33,12 @@ export function HomePage() {
   const spas = items.filter((s) => s.vertical === 'spa');
   const ateliers = items.filter((s) => s.vertical === 'atelier');
   const stays = items.filter((s) => s.vertical === 'short_stay');
-  const showcase = spas[0]?.handle;
 
   return (
     <main>
-      <Hero showcase={showcase} count={items.length} />
+      <Hero items={items} />
+      <Selection items={items} />
+      <Categories items={items} />
       <Solves />
       <Journey />
       <section id="spas" className="scroll-mt-20 py-20 md:py-28">
@@ -77,7 +71,9 @@ export function HomePage() {
           <PlaceGrid loading={all.isLoading} error={all.error} items={stays} size="sm" />
         </div>
       </section>
+      <Areas items={items} />
       <Reviews items={items} />
+      <JournalTeaser />
       <ForBusiness />
     </main>
   );
@@ -85,7 +81,10 @@ export function HomePage() {
 
 /* ---------- Hero ---------- */
 
-function Hero({ showcase, count }: { showcase: string | undefined; count: number }) {
+function Hero({ items }: { items: StoreCard[] }) {
+  const count = items.length;
+  const navigate = useNavigate();
+  const [q, setQ] = useState('');
   return (
     <section className="relative isolate overflow-hidden bg-obsidian-900 text-white">
       <img
@@ -110,12 +109,12 @@ function Hero({ showcase, count }: { showcase: string | undefined; count: number
             place directly. Nothing on their lock screen gives them away.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <a
-              href="#spas"
+            <Link
+              to="/explore"
               className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-obsidian-900 transition hover:bg-ivory"
             >
-              Explore our spas <ArrowRight className="size-4" />
-            </a>
+              Explore every place <ArrowRight className="size-4" />
+            </Link>
             <a
               href="#business"
               className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
@@ -138,12 +137,52 @@ function Hero({ showcase, count }: { showcase: string | undefined; count: number
             </div>
           </dl>
         </div>
-        <div className="hidden justify-center lg:flex">
-          {showcase ? (
-            <PhoneFrame src={storeUrl(showcase)} title="A spa store in the Stayvinci app" />
-          ) : (
-            <div className="h-[640px] w-[316px] rounded-[48px] border border-white/15 bg-white/5" />
-          )}
+        <div className="hidden lg:block">
+          <div className="border border-white/10 bg-noir-950/70 p-7 backdrop-blur-md">
+            <div className="text-[10px] font-medium tracking-[0.26em] text-[#e4cf9f] uppercase">
+              The index · {SEASON}
+            </div>
+            <form
+              className="mt-5 flex items-center gap-3 border border-white/15 bg-white/5 px-4 py-3 focus-within:border-gold-300/60"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void navigate(`/explore${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`);
+              }}
+            >
+              <Search className="size-4 text-white/60" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="A place, a treatment, an area…"
+                className="w-full bg-transparent text-[15px] text-white outline-none placeholder:text-white/40"
+              />
+            </form>
+            <ul className="mt-4 divide-y divide-white/10">
+              {CATEGORIES.map((c) => (
+                <li key={c.vertical}>
+                  <Link
+                    to={`/explore?kind=${c.vertical}`}
+                    className="group flex items-baseline justify-between gap-4 py-4"
+                  >
+                    <span>
+                      <span className="block text-xl font-semibold tracking-tight">{c.label}</span>
+                      <span className="block text-[13px] text-white/50">{c.blurb}</span>
+                    </span>
+                    <span className="flex items-center gap-3 text-2xl font-light text-[#e4cf9f] tabular-nums">
+                      {items.filter((s) => s.vertical === c.vertical).length || '—'}
+                      <ArrowRight className="size-4 -translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/standard"
+              className="mt-4 flex items-center gap-2.5 text-[10px] font-medium tracking-[0.26em] text-white/60 uppercase hover:text-white"
+            >
+              <BadgeCheck className="size-3.5 text-azure-400" /> Every place verified · our standard
+            </Link>
+          </div>
         </div>
       </div>
     </section>
@@ -355,85 +394,185 @@ function PlaceGrid({
       )}
     >
       {items.map((s) => (
-        <PlaceCard key={s.handle} s={s} size={size} />
+        <AtlasCard key={s.handle} s={s} size={size === 'lg' ? 'md' : 'mini'} />
       ))}
     </div>
   );
 }
 
-function Rating({ s, light }: { s: StoreCard; light?: boolean }) {
-  return s.rating.average !== null ? (
-    <span className="inline-flex items-center gap-1 text-[13px] font-medium">
-      <Star className="size-3.5 fill-gold-400 text-gold-400" />
-      {s.rating.average.toFixed(1)}
-      <span className={light ? 'text-white/60' : 'text-ink-subtle'}>({s.rating.count})</span>
-    </span>
-  ) : (
-    <span
+/* ---------- Atlas-style section number: "I —— The selection" ---------- */
+
+function Numbered({ n, label, light }: { n: string; label: string; light?: boolean }) {
+  return (
+    <div
       className={cn(
-        'inline-flex items-center gap-1 text-[12px] font-medium',
-        light ? 'text-white/70' : 'text-ink-subtle',
+        'flex items-center gap-4 text-[11px] font-medium tracking-[0.26em] uppercase',
+        light ? 'text-[#e4cf9f]' : 'text-gold-600 dark:text-gold-400',
       )}
     >
-      <Sparkles className="size-3.5" /> New on Stayvinci
-    </span>
+      <span>{n}</span>
+      <span className={cn('h-px w-10', light ? 'bg-[#e4cf9f]/50' : 'bg-gold-400/60')} />
+      <span>{label}</span>
+    </div>
   );
 }
 
-function PlaceCard({ s, size }: { s: StoreCard; size: 'lg' | 'sm' }) {
-  const place = [s.area, s.city].filter(Boolean).join(', ');
+/* ---------- The season's selection, on noir ---------- */
+
+function Selection({ items }: { items: StoreCard[] }) {
+  const picks = SELECTION.map((h) => items.find((s) => s.handle === h)).filter(
+    (s): s is StoreCard => !!s,
+  );
+  if (!picks.length) return null;
   return (
-    <Link
-      to={`/places/${s.handle}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-card-hover"
-    >
-      <div
-        className={cn('relative overflow-hidden bg-obsidian-900', size === 'lg' ? 'h-60' : 'h-44')}
-      >
-        {s.cover_url ? (
-          <img
-            src={media(s.cover_url) ?? ''}
-            alt=""
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-          />
-        ) : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-        <span className="absolute top-3 left-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-obsidian-900">
-          {KIND_LABEL[s.vertical]}
-        </span>
-        <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-obsidian-900">
-          <BadgeCheck className="size-3.5 text-azure-700" /> Verified
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-3">
-          <h3
-            className={cn('font-semibold tracking-tight', size === 'lg' ? 'text-lg' : 'text-base')}
+    <section id="selection" className="scroll-mt-20 bg-noir-sheen py-20 text-[#f1ebdf] md:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <Numbered n="I" label={`The selection · ${SEASON}`} light />
+            <h2 className="mt-5 max-w-2xl text-3xl leading-tight font-semibold tracking-tight md:text-[2.6rem]">
+              Places we would send a friend to
+            </h2>
+            <p className="mt-4 max-w-xl text-[15px] text-[#a59d90]">
+              Chosen by the Stayvinci team for the season. A place can’t pay to be here.
+            </p>
+          </div>
+          <Link
+            to="/explore"
+            className="flex shrink-0 items-center gap-2.5 text-[11px] font-medium tracking-[0.26em] text-[#e4cf9f] uppercase hover:text-white"
           >
-            {s.name}
-          </h3>
-          <Rating s={s} />
+            Every place <span className="h-px w-8 bg-current" />
+          </Link>
         </div>
-        <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{s.tagline}</p>
-        <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-[13px]">
-          <span className="flex min-w-0 items-center gap-1 truncate text-ink-muted">
-            <MapPin className="size-3.5 shrink-0" /> {place}
-          </span>
-          {s.from_price_minor !== null ? (
-            <span className="shrink-0 font-medium">
-              from {money(s.from_price_minor, s.currency)}
-            </span>
-          ) : null}
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {picks.map((s, i) => (
+            <AtlasCard
+              key={s.handle}
+              s={s}
+              tone="noir"
+              size="mini"
+              tag={`No. ${String(i + 1).padStart(2, '0')}`}
+            />
+          ))}
         </div>
-        {size === 'lg' ? (
-          <span className="mt-4 inline-flex items-center gap-1.5 border-t border-line pt-4 text-sm font-semibold text-azure-700 dark:text-azure-400">
-            See their store{' '}
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-          </span>
-        ) : null}
       </div>
-    </Link>
+    </section>
+  );
+}
+
+/* ---------- Categories with counts ---------- */
+
+function Categories({ items }: { items: StoreCard[] }) {
+  return (
+    <section className="py-20 md:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <Numbered n="II" label="Categories" />
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          {CATEGORIES.map((c) => {
+            const n = items.filter((s) => s.vertical === c.vertical).length;
+            return (
+              <Link
+                key={c.vertical}
+                to={`/explore?kind=${c.vertical}`}
+                className="group relative isolate flex aspect-[5/4] flex-col justify-end overflow-hidden rounded-xl border border-line p-6 text-white shadow-card transition-shadow hover:shadow-card-hover"
+              >
+                <img
+                  src={media(c.image) ?? ''}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-0 -z-10 size-full object-cover brightness-[.7] transition-[transform,filter] duration-[1400ms] group-hover:scale-105 group-hover:brightness-[.8]"
+                />
+                <div className="absolute inset-0 -z-10 bg-gradient-to-t from-noir-950/90 via-noir-950/30 to-transparent" />
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-medium tracking-[0.26em] text-[#e4cf9f] uppercase">
+                      {c.blurb}
+                    </div>
+                    <div className="mt-2 text-3xl font-semibold tracking-tight">{c.label}</div>
+                  </div>
+                  <div className="text-4xl font-light text-[#e4cf9f] tabular-nums">{n || '—'}</div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Browse by area ---------- */
+
+function Areas({ items }: { items: StoreCard[] }) {
+  const areas = areasOf(items).slice(0, 8);
+  if (!areas.length) return null;
+  return (
+    <section className="bg-noir-sheen py-20 text-[#f1ebdf] md:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <Numbered n="III" label="By area" light />
+        <h2 className="mt-5 text-3xl font-semibold tracking-tight md:text-4xl">
+          Close to home, or close to work
+        </h2>
+        <div className="mt-10 grid gap-px overflow-hidden border border-noir-line bg-noir-line sm:grid-cols-2 lg:grid-cols-4">
+          {areas.map((a) => (
+            <Link
+              key={a.area}
+              to={`/explore?area=${encodeURIComponent(a.area)}`}
+              className="group relative isolate flex min-h-40 flex-col justify-end bg-noir-900 p-5"
+            >
+              {a.cover ? (
+                <img
+                  src={media(a.cover) ?? ''}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-0 -z-10 size-full object-cover opacity-0 transition-opacity duration-700 group-hover:opacity-35"
+                />
+              ) : null}
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xl font-semibold tracking-tight">{a.area}</span>
+                <span className="text-sm text-[#e4cf9f] tabular-nums">
+                  {a.count} {a.count === 1 ? 'place' : 'places'}
+                </span>
+              </div>
+              <span className="mt-3 flex items-center gap-2.5 text-[10px] font-medium tracking-[0.26em] text-noir-muted uppercase group-hover:text-[#e4cf9f]">
+                Discover
+                <span className="h-px w-[18px] bg-current transition-[width] duration-300 group-hover:w-[34px]" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Journal ---------- */
+
+function JournalTeaser() {
+  return (
+    <section className="py-20 md:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <div className="flex items-end justify-between gap-6">
+          <div>
+            <Numbered n="IV" label="The Journal" />
+            <h2 className="mt-5 text-3xl font-semibold tracking-tight md:text-4xl">
+              Guides for slower, better visits
+            </h2>
+          </div>
+          <Link
+            to="/journal"
+            className="hidden shrink-0 items-center gap-2.5 text-[11px] font-medium tracking-[0.26em] text-gold-600 uppercase sm:flex dark:text-gold-400"
+          >
+            All guides <span className="h-px w-8 bg-current" />
+          </Link>
+        </div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {JOURNAL.map((g) => (
+            <GuideCard key={g.slug} g={g} />
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
