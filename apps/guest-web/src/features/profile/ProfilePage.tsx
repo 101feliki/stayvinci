@@ -20,7 +20,9 @@ import {
   Switch,
   ThemeSwitcher,
 } from '@stayvinci/ui';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
+import { appLock } from '../../lib/appLock';
 import { useAction, useMe, useSignIn } from '../../app/shared';
 
 /** Profile and privacy controls (spec §7 discretion features). */
@@ -30,7 +32,36 @@ export function ProfilePage() {
   const update = useAction((p: Parameters<typeof api.me.update>[0]) => api.me.update(p), {
     success: 'Saved',
   });
-  const signOut = useAction(() => api.me.signOut(), { success: 'Signed out' });
+  const signOut = useAction(
+    async () => {
+      appLock.disable();
+      return api.me.signOut();
+    },
+    { success: 'Signed out' },
+  );
+  // Called straight from the tap: phones only show Face ID/fingerprint after a tap.
+  const toggleLock = async (on: boolean) => {
+    try {
+      if (on) {
+        if (!(await appLock.supported())) {
+          toast.error(
+            'This phone or browser can’t lock the app. Set a screen lock (PIN, fingerprint or Face ID) on the phone first.',
+          );
+          return;
+        }
+        await appLock.enable();
+        update.mutate({ appLock: true });
+        toast.success('App lock is on. You’ll be asked when the app opens.');
+      } else {
+        if (!(await appLock.unlock())) return;
+        appLock.disable();
+        update.mutate({ appLock: false });
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'NotAllowedError') return; // cancelled
+      toast.error(e instanceof Error ? e.message : 'Could not change the app lock.');
+    }
+  };
   const [alias, setAlias] = useState<string | null>(null);
 
   if (!me.data) return <Skeleton className="h-80 rounded-2xl" />;
@@ -127,14 +158,11 @@ export function ProfilePage() {
           <div className="flex-1">
             <div className="text-sm font-medium">App lock</div>
             <div className="text-[13px] text-ink-muted">
-              Ask for fingerprint or PIN when the app opens.
+              Ask for Face ID, fingerprint or your phone’s PIN when the app opens, and after a
+              minute away.
             </div>
           </div>
-          <Switch
-            checked={m.appLock}
-            onChange={(v) => update.mutate({ appLock: v })}
-            label="App lock"
-          />
+          <Switch checked={m.appLock} onChange={(v) => void toggleLock(v)} label="App lock" />
         </div>
         <div className="flex items-center gap-4 p-5">
           <Megaphone className="size-5 text-emerald-700" />

@@ -2,6 +2,7 @@
 // used with the prototype data, so pages stay unchanged where the backend already exists.
 // Features without a backend yet (memberships, packages, gift cards, content, wallet,
 // in-app payment) return empty data, so their screens show empty states instead of fake data.
+import { appLock } from './appLock';
 import {
   DEFAULT_MARQUEE,
   DEFAULT_SEASON,
@@ -563,7 +564,7 @@ export const api = {
         email: null as string | null,
         alias: prefs.alias,
         notificationDetail: prefs.notificationDetail,
-        appLock: prefs.appLock,
+        appLock: appLock.enabled(),
         marketing: prefs.marketing,
       };
       if (!tokens) return base;

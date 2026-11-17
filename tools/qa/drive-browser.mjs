@@ -3,7 +3,8 @@
 //
 // Usage: node tools/qa/drive-browser.mjs steps.json
 // Steps: [{ "go": url, "wait": ms }, { "click": [cssSelector, text] }, { "type": "text" },
-//         { "media": "dark" | "light" }, { "scroll": px }, { "shot": "name.png", "w": 1440, "h": 1000 }]
+//         { "media": "dark" | "light" }, { "scroll": px }, { "shot": "name.png", "w": 1440, "h": 1000 },
+//         { "sleep": ms }, { "cdp": ["Domain.method", params] }]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -101,6 +102,7 @@ try {
   });
   await send('Page.enable');
   await send('Runtime.enable');
+  const vars = {};
   for (const s of steps) {
     if (s.media)
       await send('Emulation.setEmulatedMedia', {
@@ -110,6 +112,16 @@ try {
     if (s.go) await go(s.go, s.wait ?? 2500);
     if (s.click) console.log('click', s.click[1], await clickText(s.click[0], s.click[1]));
     if (s.eval) console.log('eval', await evaluate(s.eval));
+    // Raw DevTools command, e.g. { "cdp": ["WebAuthn.enable", {}] } for a virtual fingerprint reader.
+    // Values returned by earlier cdp steps can be reused as "$name" (e.g. "$authenticatorId").
+    if (s.cdp) {
+      const params = JSON.parse(JSON.stringify(s.cdp[1] ?? {}), (_, v) =>
+        typeof v === 'string' && v.startsWith('$') ? vars[v.slice(1)] : v,
+      );
+      const r = await send(s.cdp[0], params);
+      Object.assign(vars, r ?? {});
+      console.log('cdp', s.cdp[0], JSON.stringify(r));
+    }
     if (s.type) await send('Input.insertText', { text: s.type });
     if (s.key) {
       await send('Input.dispatchKeyEvent', {

@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import '@fontsource-variable/inter';
 import './index.css';
 import { App } from './app/App';
+import { LockGate } from './app/LockGate';
 import { registerServiceWorker } from './lib/install';
 
 registerServiceWorker();
@@ -28,7 +29,9 @@ createRoot(root, {
 }).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <LockGate>
+        <App />
+      </LockGate>
       <Toaster
         position="top-center"
         toastOptions={{
